@@ -31,13 +31,10 @@ def otimizar_circuito(circuito:QuantumCircuit, nivel_otimizacao:int=3):
     )
     return circuito_otimizado
 
-def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap, layout_inicial=None, nivel_otimizacao:int=0):
+def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap, layout_inicial=None, nivel_otimizacao:int=0, portas_nativas: list[str] | None = None):
     """
-    Adapta um circuito às conexões físicas
-    de um hardware quântico.
-
-    Se nenhum layout inicial for informado,
-    utiliza o algoritmo SABRE.
+    Adapta um circuito quântico às restrições
+    de conectividade e portas nativas do hardware.
     """
     if nivel_otimizacao not in (0, 1, 2, 3):
         raise ValueError("Nível de otimização deve ser 0, 1, 2 ou 3.")
@@ -45,6 +42,7 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
     otimizado = transpile(
         circuito,
         coupling_map=conectividade,
+        basis_gates=portas_nativas,
         initial_layout=layout_inicial,
         layout_method = "sabre" if layout_inicial is None else None,
         routing_method= "basic",
