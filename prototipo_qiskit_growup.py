@@ -1,9 +1,3 @@
-"""Prototipo inicial de analise e otimizacao de circuitos quanticos do GrowUp.
-
-Este exemplo usa apenas o Qiskit SDK: nao executa circuitos em simuladores
-ou hardware real e nao inclui integracao com o agente RAG.
-"""
-
 import json
 
 from qiskit import QuantumCircuit, transpile
@@ -11,7 +5,6 @@ from qiskit.quantum_info import Operator
 
 
 def main():
-    # Criar circuito de dois qubits com operacoes redundantes.
     circuito = QuantumCircuit(2)
 
     circuito.x(0)
