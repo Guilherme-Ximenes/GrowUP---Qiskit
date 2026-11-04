@@ -1,5 +1,6 @@
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Operator
+from qiskit.transpiler import CouplingMap
 
 def obter_metricas(circuito: QuantumCircuit):
     """
@@ -29,6 +30,28 @@ def otimizar_circuito(circuito:QuantumCircuit, nivel_otimizacao:int=3):
     seed_transpiler=42
     )
     return circuito_otimizado
+
+def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap, layout_inicial=None, nivel_otimizacao:int=0):
+    """
+    Adapta um circuito às conexões físicas
+    de um hardware quântico.
+
+    Se nenhum layout inicial for informado,
+    utiliza o algoritmo SABRE.
+    """
+    if nivel_otimizacao not in (0, 1, 2, 3):
+        raise ValueError("Nível de otimização deve ser 0, 1, 2 ou 3.")
+
+    otimizado = transpile(
+        circuito,
+        coupling_map=conectividade,
+        initial_layout=layout_inicial,
+        layout_method = "sabre" if layout_inicial is None else None,
+        routing_method= "basic",
+        optimization_level=nivel_otimizacao,
+        seed_transpiler=42
+    )
+    return otimizado
 
 def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     """
