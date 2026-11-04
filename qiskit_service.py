@@ -118,3 +118,43 @@ def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircu
     }
 
     return resultados
+
+def avaliar_proposta_ia(original: QuantumCircuit, proposta: QuantumCircuit):
+    """
+    Avalia uma proposta de otimização de um circuito
+    feita por uma IA, comparando com o circuito original,
+    verificando equivalência e métricas.
+
+    Destinada a circuitos unitários pequenos,
+    sem medições ou operações não unitárias.
+    """
+    metricas_original = obter_metricas(original)
+    metricas_proposta = obter_metricas(proposta)
+
+    equivalencia = verificar_equivalencia(original, proposta)
+
+    diferenca_portas = (
+        metricas_proposta["total_operacoes"]
+        - metricas_original["total_operacoes"]
+    )
+    
+    diferenca_profundidade = (
+        metricas_proposta["profundidade"]
+        - metricas_original["profundidade"]
+    )
+
+    reduziu_operacoes = (equivalencia and diferenca_portas < 0)
+
+    reduziu_profundidade = (equivalencia and diferenca_profundidade < 0)
+
+    resultados = {
+        "original": metricas_original,
+        "proposta": metricas_proposta,
+        "equivalente": equivalencia,
+        "diferenca_portas": diferenca_portas,
+        "diferenca_profundidade": diferenca_profundidade,
+        "reduziu_operacoes": reduziu_operacoes,
+        "reduziu_profundidade": reduziu_profundidade
+    }
+
+    return resultados
