@@ -62,7 +62,7 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     if original.num_qubits != otimizado.num_qubits:
         return False
     
-    return bool(Operator(original).equiv(Operator(otimizado)))
+    return bool(Operator.from_circuit(original).equiv(Operator.from_circuit(otimizado)))
 
 def comparar_niveis(circuito: QuantumCircuit):
     """
