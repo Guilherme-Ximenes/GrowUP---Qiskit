@@ -2,9 +2,15 @@
 
 **Análise, otimização e validação de circuitos quânticos com Python e Qiskit.**
 
-Este repositório contém o desenvolvimento do **módulo Qiskit** do projeto acadêmico **GrowUp — Agente RAG para Otimização de Código em Next-Gen Computing**. O foco inicial é a otimização de circuitos quânticos; futuramente, o módulo deverá se integrar ao agente RAG e à API desenvolvidos pela equipe.
+Este repositório é dedicado **exclusivamente ao desenvolvimento e aos testes do módulo Qiskit**, contribuição do Integrante 5 para o projeto acadêmico **GrowUp — Agente RAG para Otimização de Código em Next-Gen Computing**. O agente, o RAG, o ChromaDB e a API são desenvolvidos no repositório principal da equipe.
 
-> **Estado atual:** protótipo inicial de análise e transpilação. A integração com LLM, RAG, ChromaDB e FastAPI **ainda não está implementada neste repositório**.
+> **Estado atual:** prova de conceito de análise e transpilação com Qiskit. Este repositório **não implementa o sistema GrowUp completo**.
+
+## Escopo deste repositório
+
+**Inclui:** criação e leitura de circuitos, análise de métricas, transpilação e otimização, validação de equivalência, experimentos com recursos do Qiskit e testes locais. Também pode definir funções e formatos de entrada/saída para facilitar o consumo do módulo pelo projeto principal.
+
+**Não inclui:** implementação da LLM, pipeline RAG, banco vetorial ChromaDB, servidor FastAPI, endpoints da API principal ou frontend. A integração dos componentes e os testes de ponta a ponta pertencem ao repositório da equipe, em colaboração com os responsáveis por cada área.
 
 ## Objetivo
 
@@ -13,7 +19,7 @@ Oferecer ferramentas para:
 - Comparar circuitos antes e depois da transpilação;
 - Medir quantidade de operações e profundidade;
 - Verificar equivalência de circuitos unitários pequenos;
-- Preparar dados estruturados para a integração futura com a API e o agente RAG.
+- Disponibilizar funções e saídas estruturadas para serem consumidas pelo projeto principal, sem implementar a API neste repositório.
 
 ## Tecnologias
 
@@ -100,12 +106,12 @@ Exemplo ilustrativo do resumo JSON, caso a transpilação reduza o circuito a du
 
 ## Limitações atuais
 
-- O circuito é fixo e definido no código; ainda não há entrada dinâmica por API.
+- O circuito é fixo e definido no código; o módulo ainda não oferece uma função reutilizável para receber circuitos externos.
 - A otimização é realizada pelo transpilador do Qiskit, **não por uma IA**.
 - `Operator.equiv()` verifica equivalência entre operações unitárias (até fase global) e não serve, sem adaptações, para qualquer circuito com medidas, ruído ou fluxo de controle.
 - Não há escolha de hardware quântico, topologia física ou modelo de ruído.
 - Menos operações ou menor profundidade **não garantem**, isoladamente, menor erro ou maior velocidade em hardware real.
-- A integração com os componentes do agente RAG ainda será construída e testada.
+- A integração com os demais componentes do GrowUp será realizada no repositório principal da equipe.
 
 ## Próximos passos — Sprint 3
 
@@ -113,13 +119,13 @@ Exemplo ilustrativo do resumo JSON, caso a transpilação reduza o circuito a du
 - [ ] Aceitar circuitos de entrada em um formato estruturado e validado.
 - [ ] Comparar diferentes níveis de otimização e métricas adicionais.
 - [ ] Validar propostas de otimização produzidas pela IA com Qiskit.
-- [ ] Estabelecer contrato de entrada/saída com a API da equipe.
-- [ ] Testar a integração ponta a ponta com o pipeline RAG.
+- [ ] Definir e documentar funções e formatos de entrada/saída para a equipe integrar o módulo.
+- [ ] Entregar o módulo Qiskit e exemplos de uso aos responsáveis pela integração no repositório principal.
 - [ ] Adicionar testes automatizados e documentar limitações.
 
 ## Relação com o agente GrowUp
 
-O objetivo é permitir que o agente RAG utilize conhecimento de computação quântica e documentação do Qiskit para **analisar e propor** melhorias em circuitos, enquanto o módulo Qiskit oferece métricas, transpilação de referência e verificação técnica.
+No projeto principal, o agente RAG utilizará conhecimento de computação quântica e documentação do Qiskit para **analisar e propor** melhorias em circuitos. **Este repositório fornece apenas o componente Qiskit**, responsável por métricas, transpilação de referência e verificação técnica. A conexão com o agente será realizada pela equipe fora deste repositório.
 
 A mentoria orientou a explorar tanto as ferramentas de otimização nativas do Qiskit quanto propostas formuladas pela própria IA. A validação é fundamental: uma sugestão não deve ser tratada como correta apenas porque reduziu o número de portas.
 
