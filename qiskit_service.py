@@ -41,3 +41,21 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     
     return bool(Operator(original).equiv(Operator(otimizado)))
 
+def comparar_niveis(circuito: QuantumCircuit):
+    """
+    Compara o circuito original com suas versões
+    otimizadas em diferentes níveis de otimização.
+    """
+    resultados = {}
+    nivel = 0
+
+    while nivel <= 3:
+        otimizado = otimizar_circuito(circuito, nivel)
+
+        resultados[nivel] = {
+            "metricas": obter_metricas(otimizado),
+            "equivalente": verificar_equivalencia(circuito, otimizado)
+        }
+        nivel += 1
+        
+    return resultados   
