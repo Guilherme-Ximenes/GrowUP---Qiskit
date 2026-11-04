@@ -80,3 +80,41 @@ def comparar_niveis(circuito: QuantumCircuit):
         nivel += 1
         
     return resultados   
+
+def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircuit, portas_nativas: list[str] | None = None):
+    """
+    Compara as métricas de um circuito original
+    com sua versão adaptada ao hardware.
+
+    Considera circuitos unitários sem medições.
+    """
+    metricas_originais = obter_metricas(original)
+    metricas_adaptadas = obter_metricas(adaptado)
+
+    diferenca_portas = (
+        metricas_adaptadas["total_operacoes"]
+        - metricas_originais["total_operacoes"]
+    )
+    
+    diferenca_profundidade = (
+        metricas_adaptadas["profundidade"]
+        - metricas_originais["profundidade"]
+    )
+
+    equivalencia = verificar_equivalencia(original, adaptado)
+
+    compativel_portas = None
+
+    if portas_nativas is not None:
+        compativel_portas = set(adaptado.count_ops()).issubset(set(portas_nativas))
+
+    resultados = {
+        "original": metricas_originais,
+        "adaptado": metricas_adaptadas,
+        "diferenca_portas": diferenca_portas,
+        "diferenca_profundidade": diferenca_profundidade,
+        "equivalente": equivalencia,
+        "somente_portas_permitidas": compativel_portas
+    }
+
+    return resultados
