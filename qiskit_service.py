@@ -1,6 +1,7 @@
 from qiskit import QuantumCircuit, transpile
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
+from qiskit.exceptions import QiskitError
 
 def obter_metricas(circuito: QuantumCircuit):
     """
@@ -53,14 +54,27 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
 
 def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     """
-    Verifica se dois circuitos realizam
-    transformações quânticas equivalentes 
-    até uma fase global.
+    Verifica equivalência de circuitos unitários,
+    considerando os metadados de layout.
+
+    Gera ValueError caso a comparação não
+    possa ser realizada.
     """
     if original.num_qubits != otimizado.num_qubits:
         return False
     
-    return bool(Operator.from_circuit(original).equiv(Operator.from_circuit(otimizado)))
+    try:
+        operador_original = Operator.from_circuit(original)
+        operador_otimizado = Operator.from_circuit(otimizado)
+
+        return bool(
+            operador_original.equiv(operador_otimizado)
+        )
+
+    except QiskitError as erro:
+        raise ValueError(
+            "Não foi possível verificar equivalência pelo método de operadores unitários."
+        ) from erro
 
 def comparar_niveis(circuito: QuantumCircuit):
     """
@@ -83,26 +97,44 @@ def comparar_niveis(circuito: QuantumCircuit):
 
 def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircuit, portas_nativas: list[str] | None = None):
     """
-    Compara as métricas de um circuito original
-    com sua versão adaptada ao hardware.
-
-    Considera circuitos unitários sem medições.
+    Compara um circuito original com sua versão
+    adaptada ao hardware.
     """
+
+    # Obter métricas
     metricas_originais = obter_metricas(original)
     metricas_adaptadas = obter_metricas(adaptado)
 
-    diferenca_portas = (
+    # Calcular diferenças
+    diferenca_operacoes = (
         metricas_adaptadas["total_operacoes"]
         - metricas_originais["total_operacoes"]
     )
-    
+
     diferenca_profundidade = (
         metricas_adaptadas["profundidade"]
         - metricas_originais["profundidade"]
     )
 
-    equivalencia = verificar_equivalencia(original, adaptado)
+    # Verificar equivalência
+    motivo = None
 
+    try:
+        equivalente = verificar_equivalencia(
+            original, adaptado
+        )
+
+        if equivalente:
+            status = "equivalente"
+        else:
+            status = "nao_equivalente"
+
+    except ValueError as erro:
+        equivalente = None
+        status = "nao_verificado"
+        motivo = str(erro)
+
+    # Verificar portas nativas
     compativel_portas = None
 
     if portas_nativas is not None:
@@ -111,9 +143,11 @@ def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircu
     resultados = {
         "original": metricas_originais,
         "adaptado": metricas_adaptadas,
-        "diferenca_portas": diferenca_portas,
+        "diferenca_operacoes": diferenca_operacoes,
         "diferenca_profundidade": diferenca_profundidade,
-        "equivalente": equivalencia,
+        "equivalente": equivalente,
+        "status_verificacao": status,
+        "motivo": motivo,
         "somente_portas_permitidas": compativel_portas
     }
 
@@ -121,37 +155,61 @@ def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircu
 
 def avaliar_proposta_ia(original: QuantumCircuit, proposta: QuantumCircuit):
     """
-    Avalia uma proposta de otimização de um circuito
-    feita por uma IA, comparando com o circuito original,
-    verificando equivalência e métricas.
-
-    Destinada a circuitos unitários pequenos,
-    sem medições ou operações não unitárias.
+    Avalia uma proposta de otimização quântica,
+    considerando métricas e equivalência.
     """
+
     metricas_original = obter_metricas(original)
     metricas_proposta = obter_metricas(proposta)
 
-    equivalencia = verificar_equivalencia(original, proposta)
-
-    diferenca_portas = (
+    diferenca_operacoes = (
         metricas_proposta["total_operacoes"]
         - metricas_original["total_operacoes"]
     )
-    
+
     diferenca_profundidade = (
         metricas_proposta["profundidade"]
         - metricas_original["profundidade"]
     )
 
-    reduziu_operacoes = (equivalencia and diferenca_portas < 0)
+    # Tentar verificar equivalência
+    motivo = None
 
-    reduziu_profundidade = (equivalencia and diferenca_profundidade < 0)
+    try:
+        equivalente = verificar_equivalencia(
+            original, proposta
+        )
+
+        if equivalente:
+            status = "equivalente"
+        else:
+            status = "nao_equivalente"
+
+    except ValueError as erro:
+        equivalente = None
+        status = "nao_verificado"
+        motivo = str(erro)
+
+    # Avaliar reduções apenas se houve verificação
+    if equivalente is None:
+        reduziu_operacoes = None
+        reduziu_profundidade = None
+    else:
+        reduziu_operacoes = (
+            equivalente and diferenca_operacoes < 0
+        )
+
+        reduziu_profundidade = (
+            equivalente and diferenca_profundidade < 0
+        )
 
     resultados = {
         "original": metricas_original,
         "proposta": metricas_proposta,
-        "equivalente": equivalencia,
-        "diferenca_portas": diferenca_portas,
+        "equivalente": equivalente,
+        "status_verificacao": status,
+        "motivo": motivo,
+        "diferenca_operacoes": diferenca_operacoes,
         "diferenca_profundidade": diferenca_profundidade,
         "reduziu_operacoes": reduziu_operacoes,
         "reduziu_profundidade": reduziu_profundidade
