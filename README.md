@@ -2,32 +2,41 @@
 
 **Análise, otimização e validação de circuitos quânticos com Python e Qiskit.**
 
-Este repositório é dedicado **exclusivamente ao desenvolvimento e aos testes do módulo Qiskit**, contribuição do Integrante 5 para o projeto acadêmico **GrowUp — Agente RAG para Otimização de Código em Next-Gen Computing**. O agente, o RAG, o ChromaDB e a API são desenvolvidos no repositório principal da equipe.
+Este repositório reúne funções Python com Qiskit para analisar métricas, transpilar e otimizar circuitos quânticos, adaptar operações a restrições de hardware e verificar equivalência. O módulo faz parte do projeto acadêmico **GrowUp — Agente RAG para Otimização de Código em Next-Gen Computing**.
 
-> **Estado atual:** prova de conceito de análise e transpilação com Qiskit. Este repositório **não implementa o sistema GrowUp completo**.
+O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. A integração com o agente de IA e os demais serviços será feita no projeto principal da equipe.
 
-## Escopo deste repositório
+> **Estado atual:** módulo funcional de prova de conceito, com sete funções, uma demonstração executável e nove testes automatizados. **Este repositório não é o sistema GrowUp completo.**
 
-**Inclui:** criação e leitura de circuitos, análise de métricas, transpilação e otimização, validação de equivalência, experimentos com recursos do Qiskit e testes locais. Também pode definir funções e formatos de entrada/saída para facilitar o consumo do módulo pelo projeto principal.
+## Escopo e funcionalidades
 
-**Não inclui:** implementação da LLM, pipeline RAG, banco vetorial ChromaDB, servidor FastAPI, endpoints da API principal ou frontend. A integração dos componentes e os testes de ponta a ponta pertencem ao repositório da equipe, em colaboração com os responsáveis por cada área.
+O arquivo principal, `qiskit_service.py`, disponibiliza:
 
-## Objetivo
+| Função | Responsabilidade |
+| --- | --- |
+| `obter_metricas(circuito)` | Retorna número de qubits, total de operações, profundidade e contagem por tipo de operação. |
+| `otimizar_circuito(circuito, nivel_otimizacao=3)` | Utiliza o transpilador do Qiskit para otimização genérica, sem definir um hardware específico. |
+| `comparar_niveis(circuito)` | Compara as métricas e a equivalência dos resultados de transpilação nos níveis 0, 1, 2 e 3. |
+| `verificar_equivalencia(original, otimizado)` | Compara operadores unitários até fase global, considerando metadados de layout quando disponíveis. |
+| `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas. |
+| `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)` | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado. |
+| `avaliar_proposta_ia(original, proposta)` | Avalia uma proposta de circuito comparando métricas e verificando equivalência. |
 
-Oferecer ferramentas para:
-- Analisar propriedades de circuitos quânticos;
-- Comparar circuitos antes e depois da transpilação;
-- Medir quantidade de operações e profundidade;
-- Verificar equivalência de circuitos unitários pequenos;
-- Disponibilizar funções e saídas estruturadas para serem consumidas pelo projeto principal, sem implementar a API neste repositório.
+**Importante:** a função `avaliar_proposta_ia()` **não executa uma IA**. Ela recebe uma proposta de circuito já construída e aplica verificações técnicas. A geração das propostas pelo agente RAG ainda depende da integração com os outros componentes do GrowUp.
 
-## Tecnologias
+### Como interpretar as análises
 
-- **Python** — linguagem do protótipo (ambiente de desenvolvimento informado: Python 3.14.7).
-- **Qiskit 2.6.0** — SDK para construção, análise e transpilação de circuitos quânticos.
-- **JSON** — representação de métricas para futura troca de informações com a API.
+As funções de análise retornam dicionários Python com campos como `diferenca_operacoes`, `diferenca_profundidade` e `status_verificacao`.
 
-O protótipo **não exige Qiskit Aer**: ele não realiza simulações de medidas.
+O campo `status_verificacao` pode ser:
+
+- `"equivalente"` — o método confirmou equivalência unitária;
+- `"nao_equivalente"` — o método identificou transformações diferentes;
+- `"nao_verificado"` — a equivalência não pôde ser determinada pelo método utilizado.
+
+Quando a análise não é suportada, `equivalente` recebe `None` e `motivo` apresenta uma explicação. Isso **não** é a mesma coisa que retornar `False`. Os campos de redução válida de `avaliar_proposta_ia()` também recebem `None` quando não é possível verificar a equivalência.
+
+Diferenças de métricas são calculadas como **valor do circuito adaptado/proposto menos valor do original**. Assim, um número negativo indica redução; não garante, por si só, melhor desempenho em um dispositivo real.
 
 ## Estrutura do repositório
 
@@ -36,104 +45,184 @@ GrowUP---Qiskit/
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-└── prototipo_qiskit_growup.py
+├── qiskit_service.py         # Funções reutilizáveis do módulo
+├── demonstracao_qiskit.py    # Demonstração das funcionalidades
+└── teste_qiskit_service.py   # Testes automatizados com unittest
 ```
 
-## Como executar
+O antigo `prototipo_qiskit_growup.py` foi substituído por `demonstracao_qiskit.py`. Seu conteúdo anterior continua disponível no histórico de commits do GitHub.
 
-Com Python instalado, clone o projeto:
+## Requisitos e instalação
+
+- Python em versão compatível com as dependências instaladas.
+- **Qiskit 2.6.0**, fixado em `requirements.txt`.
+- Não é necessário instalar o **Qiskit Aer** para os exemplos atuais, pois eles não fazem simulação por amostragem ou de ruído.
+
+Clone o repositório:
 
 ```bash
 git clone https://github.com/Guilherme-Ximenes/GrowUP---Qiskit.git
 cd GrowUP---Qiskit
 ```
 
-Crie e ative um ambiente virtual. No Windows (PowerShell):
+Crie um ambiente virtual e instale as dependências.
+
+**Windows (PowerShell):**
 
 ```powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
 ```
 
-No Linux/macOS:
+**Linux/macOS:**
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+python -m pip install -r requirements.txt
 ```
 
-Instale as dependências e execute o protótipo:
+> O ambiente utilizado durante o desenvolvimento foi informado como Python 3.14.7 e Qiskit 2.6.0. A instalação deve ser validada no sistema e na versão de Python de cada integrante.
+
+## Executar a demonstração
 
 ```bash
-python -m pip install -r requirements.txt
-python prototipo_qiskit_growup.py
+python demonstracao_qiskit.py
 ```
 
-> A instalação pressupõe uma versão do Python compatível com o Qiskit 2.6.0 e com os pacotes distribuídos para o seu sistema. A execução deve ser validada no ambiente local.
+A demonstração tem três partes:
 
-## O que o protótipo faz?
+1. **Otimização genérica:** cria um circuito com portas redundantes, aplica `otimizar_circuito()`, apresenta métricas e compara os níveis de otimização 0 a 3.
+2. **Adaptação ao hardware:** usa um `CouplingMap` linear de três qubits e o conjunto hipotético de portas `["rz", "sx", "x", "cx"]` para demonstrar layout, roteamento e tradução para portas permitidas.
+3. **Avaliação de propostas:** simula uma proposta equivalente gerada pelo transpilador e uma proposta não equivalente, utilizando `avaliar_proposta_ia()`.
 
-O arquivo `prototipo_qiskit_growup.py`:
+Os resultados são exibidos no terminal, inclusive em formato JSON para facilitar a leitura. **A demonstração não se conecta a uma LLM, API ou processador quântico real.**
 
-1. Cria um circuito com **2 qubits**, usando portas X, H e CNOT (CX).
-2. Insere operações redundantes, como X seguida de X.
-3. Executa `transpile(circuito, optimization_level=3, seed_transpiler=42)`.
-4. Exibe o circuito original e o circuito transpilado.
-5. Compara a **quantidade de operações** (`size()`) e a **profundidade** (`depth()`).
-6. Lista os tipos de operações com `count_ops()`.
-7. Verifica a equivalência matemática usando `Operator(...).equiv(...)`.
-8. Calcula a redução percentual de operações e exibe um resumo em **JSON**.
+## Exemplo de uso do módulo
 
-### Exemplo didático
+As funções podem ser importadas em outros arquivos Python:
 
-O circuito original tem **8 operações**: 2 portas X, 3 portas H e 3 portas CX. Por propriedades dessas portas, é possível representá-lo por apenas **H e CX**, preservando a transformação.
+```python
+from qiskit import QuantumCircuit
+from qiskit_service import (
+    obter_metricas,
+    otimizar_circuito,
+    verificar_equivalencia,
+    avaliar_proposta_ia,
+)
 
-Essa é a simplificação **esperada**. O resultado efetivo do `transpile()` deve ser verificado ao executar o programa; transformações e representação podem variar conforme o ambiente e as opções de transpilação.
+# Circuito com redundância
+original = QuantumCircuit(2)
+original.x(0)
+original.x(0)
+original.h(0)
+original.cx(0, 1)
 
-Exemplo ilustrativo do resumo JSON, caso a transpilação reduza o circuito a duas operações:
+# Transpilação genérica
+otimizado = otimizar_circuito(original, nivel_otimizacao=3)
 
-```json
-{
-  "qubits": 2,
-  "portas_antes": 8,
-  "portas_depois": 2,
-  "profundidade_antes": 8,
-  "profundidade_depois": 2,
-  "reducao_percentual": 75.0,
-  "equivalente": true
-}
+print("Métricas originais:", obter_metricas(original))
+print("Métricas otimizadas:", obter_metricas(otimizado))
+print("Equivalentes:", verificar_equivalencia(original, otimizado))
+
+# Avaliação estruturada, como se fosse uma proposta recebida
+resultado = avaliar_proposta_ia(original, otimizado)
+print("Status:", resultado["status_verificacao"])
+print("Diferença de operações:", resultado["diferenca_operacoes"])
 ```
 
-## Limitações atuais
+Para adaptar circuitos a uma topologia e a portas permitidas:
 
-- O circuito é fixo e definido no código; o módulo ainda não oferece uma função reutilizável para receber circuitos externos.
-- A otimização é realizada pelo transpilador do Qiskit, **não por uma IA**.
-- `Operator.equiv()` verifica equivalência entre operações unitárias (até fase global) e não serve, sem adaptações, para qualquer circuito com medidas, ruído ou fluxo de controle.
-- Não há escolha de hardware quântico, topologia física ou modelo de ruído.
-- Menos operações ou menor profundidade **não garantem**, isoladamente, menor erro ou maior velocidade em hardware real.
-- A integração com os demais componentes do GrowUp será realizada no repositório principal da equipe.
+```python
+from qiskit import QuantumCircuit
+from qiskit.transpiler import CouplingMap
+from qiskit_service import (
+    otimizar_para_hardware,
+    analisar_adaptacao_hardware,
+)
 
-## Próximos passos — Sprint 3
+circuito = QuantumCircuit(3)
+circuito.h(0)
+circuito.cx(0, 2)
+circuito.cx(0, 1)
 
-- [ ] Refatorar o protótipo em funções reutilizáveis.
-- [ ] Aceitar circuitos de entrada em um formato estruturado e validado.
-- [ ] Comparar diferentes níveis de otimização e métricas adicionais.
-- [ ] Validar propostas de otimização produzidas pela IA com Qiskit.
-- [ ] Definir e documentar funções e formatos de entrada/saída para a equipe integrar o módulo.
-- [ ] Entregar o módulo Qiskit e exemplos de uso aos responsáveis pela integração no repositório principal.
-- [ ] Adicionar testes automatizados e documentar limitações.
+conectividade = CouplingMap.from_line(3)
+portas_nativas = ["rz", "sx", "x", "cx"]
 
-## Relação com o agente GrowUp
+adaptado = otimizar_para_hardware(
+    circuito,
+    conectividade,
+    portas_nativas=portas_nativas,
+)
 
-No projeto principal, o agente RAG utilizará conhecimento de computação quântica e documentação do Qiskit para **analisar e propor** melhorias em circuitos. **Este repositório fornece apenas o componente Qiskit**, responsável por métricas, transpilação de referência e verificação técnica. A conexão com o agente será realizada pela equipe fora deste repositório.
+analise = analisar_adaptacao_hardware(
+    circuito,
+    adaptado,
+    portas_nativas=portas_nativas,
+)
 
-A mentoria orientou a explorar tanto as ferramentas de otimização nativas do Qiskit quanto propostas formuladas pela própria IA. A validação é fundamental: uma sugestão não deve ser tratada como correta apenas porque reduziu o número de portas.
+print(analise)
+```
+
+O mapa linear e a lista de portas são **exemplos didáticos**, não a caracterização completa de um dispositivo quântico real.
+
+## Testes automatizados
+
+O arquivo `teste_qiskit_service.py` contém **nove testes** com a biblioteca padrão `unittest` do Python.
+
+Execute:
+
+```bash
+python -m unittest -v teste_qiskit_service
+```
+
+Ou execute o arquivo diretamente:
+
+```bash
+python teste_qiskit_service.py
+```
+
+Os testes cobrem métricas, transpilação genérica, comparação de níveis, rejeição de nível inválido, não equivalência, adaptação às portas permitidas, análise de hardware, avaliação de proposta e tratamento de circuito com medição.
+
+Os nove testes passaram durante a execução local realizada no desenvolvimento. **Ainda não há uma configuração de integração contínua (CI) no repositório** para executá-los automaticamente a cada push. A cobertura atual não garante ausência de erros em todos os casos.
+
+## Limitações conhecidas
+
+- **Equivalência unitária:** `verificar_equivalencia()` utiliza `Operator.from_circuit()` e `Operator.equiv()`. É adequada aos circuitos unitários pequenos estudados; não é uma verificação geral de circuitos com medições, `reset`, ruído ou fluxo clássico.
+- **Custo computacional:** a construção de operadores completos cresce exponencialmente com o número de qubits. Não há ainda limite de tamanho implementado para entradas externas.
+- **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. As funções `avaliar_proposta_ia()` e `analisar_adaptacao_hardware()` registram essa situação como `"nao_verificado"`. `comparar_niveis()` ainda não possui esse tratamento específico.
+- **Diferença de qubits:** o verificador atual retorna `False` quando os circuitos têm quantidades diferentes de qubits.
+- **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
+- **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
+- **Métricas:** menor contagem de operações ou profundidade não assegura menor erro ou melhor execução em hardware real.
+- **Propostas externas:** o módulo recebe objetos Python `QuantumCircuit`. Ainda não há um contrato implementado de serialização, validação e limites para circuitos vindos de uma API. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
+
+## Integração com o projeto principal
+
+No GrowUp completo, o agente RAG poderá consultar sua base de conhecimento e **propor** melhorias em circuitos. O módulo Qiskit será responsável por análises e verificações técnicas dessas propostas, quando aplicáveis.
+
+Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. A integração é responsabilidade compartilhada com os integrantes que desenvolvem os outros componentes, no repositório principal.
+
+### Próximos passos
+
+- [x] Criar funções reutilizáveis para métricas, otimização e equivalência.
+- [x] Comparar níveis de otimização e explorar conectividade e portas nativas.
+- [x] Implementar avaliação estruturada de propostas de circuitos.
+- [x] Criar demonstração usando o módulo reutilizável.
+- [x] Adicionar nove testes automatizados e documentar limitações.
+- [ ] Ampliar testes de entradas inválidas, layouts e casos não verificáveis.
+- [ ] Definir com a equipe um formato seguro e validado para receber circuitos externos.
+- [ ] Estabelecer limites de recursos e tratamento de erros para integração.
+- [ ] Validar a integração com API, agente RAG e fluxo ponta a ponta no projeto principal.
+- [ ] Opcional: adicionar execução automática dos testes via GitHub Actions.
 
 ## Referências
 
-- [Documentação oficial do Qiskit](https://docs.quantum.ibm.com/)
-- [Repositório oficial Qiskit (GitHub)](https://github.com/Qiskit/qiskit)
+- [Documentação oficial do Qiskit](https://quantum.cloud.ibm.com/docs)
+- [Código-fonte oficial do Qiskit](https://github.com/Qiskit/qiskit)
+- [Biblioteca unittest do Python](https://docs.python.org/3/library/unittest.html)
 
 ---
 
-**Projeto GrowUp · Módulo Qiskit · Integrante 5**
+**Projeto GrowUp · Módulo Qiskit**
