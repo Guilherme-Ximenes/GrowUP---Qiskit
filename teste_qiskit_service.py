@@ -111,6 +111,36 @@ class TestQiskitService(unittest.TestCase):
         self.assertTrue(resultado["equivalente"])
         self.assertTrue(resultado["reduziu_operacoes"])
 
+    
+    def test_proposta_ia_incorreta(self):
+        original = QuantumCircuit(2)
+        original.h(0)
+        original.cx(0, 1)
+
+        proposta = QuantumCircuit(2)
+        proposta.h(0)
+
+        resultado = avaliar_proposta_ia(
+            original,
+            proposta
+        )
+
+        self.assertEqual(
+            resultado["diferenca_operacoes"],
+            -1
+        )
+
+        self.assertFalse(resultado["equivalente"])
+
+        self.assertEqual(
+            resultado["status_verificacao"],
+            "nao_equivalente"
+        )
+
+        self.assertFalse(resultado["reduziu_operacoes"])
+        self.assertFalse(resultado["reduziu_profundidade"])
+
+
     def test_medicao_nao_verificada(self):
         original = QuantumCircuit(1)
         original.h(0)
