@@ -226,6 +226,27 @@ class TestQiskitService(unittest.TestCase):
             resultado["motivo"]
         )
 
+    
+    def test_portas_nao_permitidas(self):
+        original = QuantumCircuit(1)
+        original.h(0)
+
+        adaptado = QuantumCircuit(1)
+        adaptado.h(0)
+
+        portas_nativas = ["rz", "sx", "x", "cx"]
+
+        resultado = analisar_adaptacao_hardware(
+            original,
+            adaptado,
+            portas_nativas
+        )
+
+        self.assertTrue(resultado["equivalente"])
+
+        self.assertFalse(
+            resultado["somente_portas_permitidas"]
+        )
 
 if __name__ == "__main__":
     unittest.main()
