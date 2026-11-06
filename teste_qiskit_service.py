@@ -130,6 +130,44 @@ class TestQiskitService(unittest.TestCase):
 
         self.assertIsNone(resultado["equivalente"])
 
+    
+    def test_equivalencia_com_layout_diferente(self):
+        circuito = QuantumCircuit(3)
+        circuito.h(0)
+        circuito.cx(0, 1)
+        circuito.cx(0, 2)
+
+        conectividade = CouplingMap.from_line(3)
+
+        layout_inicial = [1, 0, 2]
+
+        adaptado = otimizar_para_hardware(
+            circuito,
+            conectividade,
+            layout_inicial=layout_inicial,
+            portas_nativas=["rz", "sx", "x", "cx"]
+        )
+
+        self.assertEqual(
+            adaptado.layout.initial_index_layout(),
+            layout_inicial
+        )
+
+        self.assertTrue(
+            verificar_equivalencia(circuito, adaptado)
+        )
+
+    def test_nivel_invalido_hardware(self):
+        circuito = QuantumCircuit(3)
+
+        conectividade = CouplingMap.from_line(3)
+
+        with self.assertRaises(ValueError):
+            otimizar_para_hardware(
+                circuito,
+                conectividade,
+                nivel_otimizacao=5
+            )
 
 if __name__ == "__main__":
     unittest.main()
