@@ -199,5 +199,33 @@ class TestQiskitService(unittest.TestCase):
                 nivel_otimizacao=5
             )
 
+    
+    def test_analise_hardware_nao_verificada(self):
+        original = QuantumCircuit(1)
+        original.h(0)
+
+        adaptado = QuantumCircuit(1, 1)
+        adaptado.h(0)
+        adaptado.measure(0, 0)
+
+        resultado = analisar_adaptacao_hardware(
+            original,
+            adaptado
+        )
+
+        self.assertEqual(
+            resultado["status_verificacao"],
+            "nao_verificado"
+        )
+
+        self.assertIsNone(
+            resultado["equivalente"]
+        )
+
+        self.assertIsNotNone(
+            resultado["motivo"]
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
