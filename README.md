@@ -6,7 +6,7 @@ Este repositório reúne funções Python com Qiskit para analisar métricas, tr
 
 O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. A integração com o agente de IA e os demais serviços será feita no projeto principal da equipe.
 
-> **Estado atual:** módulo funcional de prova de conceito, com sete funções, uma demonstração executável e nove testes automatizados. **Este repositório não é o sistema GrowUp completo.**
+> **Estado atual:** módulo funcional de prova de conceito, com sete funções reutilizáveis, uma demonstração executável e 14 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
 
 ## Escopo e funcionalidades
 
@@ -16,7 +16,7 @@ O arquivo principal, `qiskit_service.py`, disponibiliza:
 | --- | --- |
 | `obter_metricas(circuito)` | Retorna número de qubits, total de operações, profundidade e contagem por tipo de operação. |
 | `otimizar_circuito(circuito, nivel_otimizacao=3)` | Utiliza o transpilador do Qiskit para otimização genérica, sem definir um hardware específico. |
-| `comparar_niveis(circuito)` | Compara as métricas e a equivalência dos resultados de transpilação nos níveis 0, 1, 2 e 3. |
+| `comparar_niveis(circuito)` | Compara métricas e equivalência nos níveis 0, 1, 2 e 3, registrando também o status e o motivo quando a equivalência não puder ser verificada. |
 | `verificar_equivalencia(original, otimizado)` | Compara operadores unitários até fase global, considerando metadados de layout quando disponíveis. |
 | `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas. |
 | `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)` | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado. |
@@ -34,7 +34,9 @@ O campo `status_verificacao` pode ser:
 - `"nao_equivalente"` — o método identificou transformações diferentes;
 - `"nao_verificado"` — a equivalência não pôde ser determinada pelo método utilizado.
 
-Quando a análise não é suportada, `equivalente` recebe `None` e `motivo` apresenta uma explicação. Isso **não** é a mesma coisa que retornar `False`. Os campos de redução válida de `avaliar_proposta_ia()` também recebem `None` quando não é possível verificar a equivalência.
+Quando a verificação de equivalência não é suportada e gera o `ValueError` previsto pelo módulo, `equivalente` recebe `None` e `motivo` apresenta uma explicação. Isso **não** é a mesma coisa que retornar `False`. Os campos de redução válida de `avaliar_proposta_ia()` também recebem `None` quando não é possível verificar a equivalência.
+
+Em `comparar_niveis(circuito)`, o retorno é um dicionário cujas chaves são os níveis `0`, `1`, `2` e `3`. Cada nível contém `metricas`, `equivalente`, `status_verificacao` e `motivo`. A função mantém os campos originais `metricas` e `equivalente`, para não quebrar os exemplos já existentes.
 
 Diferenças de métricas são calculadas como **valor do circuito adaptado/proposto menos valor do original**. Assim, um número negativo indica redução; não garante, por si só, melhor desempenho em um dispositivo real.
 
@@ -169,7 +171,7 @@ O mapa linear e a lista de portas são **exemplos didáticos**, não a caracteri
 
 ## Testes automatizados
 
-O arquivo `teste_qiskit_service.py` contém **nove testes** com a biblioteca padrão `unittest` do Python.
+O arquivo `teste_qiskit_service.py` contém **14 testes automatizados** com a biblioteca padrão `unittest` do Python.
 
 Execute:
 
@@ -183,15 +185,25 @@ Ou execute o arquivo diretamente:
 python teste_qiskit_service.py
 ```
 
-Os testes cobrem métricas, transpilação genérica, comparação de níveis, rejeição de nível inválido, não equivalência, adaptação às portas permitidas, análise de hardware, avaliação de proposta e tratamento de circuito com medição.
+Os testes atualmente cobrem:
 
-Os nove testes passaram durante a execução local realizada no desenvolvimento. **Ainda não há uma configuração de integração contínua (CI) no repositório** para executá-los automaticamente a cada push. A cobertura atual não garante ausência de erros em todos os casos.
+- Métricas básicas, otimização genérica e comparação dos níveis `0` a `3`;
+- Rejeição de níveis de otimização inválidos, tanto na otimização genérica quanto na adaptação ao hardware;
+- Equivalência e não equivalência, inclusive após aplicação de um layout físico diferente;
+- Adaptação ao hardware e verificação de nomes de portas permitidas e não permitidas;
+- Análise de hardware equivalente e com equivalência inconclusiva;
+- Avaliação de proposta correta e incorreta, sem considerar uma redução de operações como válida quando a proposta não é equivalente;
+- Tratamento de uma proposta com medição cuja equivalência unitária não pode ser verificada.
+
+**Os 14 testes foram executados com sucesso no ambiente local de desenvolvimento**, conforme verificação realizada pelo responsável pelo módulo. Ainda não existe configuração de integração contínua (CI) no repositório para executá-los a cada push, e a cobertura não garante ausência de erros em todos os casos.
+
+**Teste ainda pendente:** criar um caso específico para confirmar o novo retorno `"nao_verificado"` de `comparar_niveis()` em situações de equivalência inconclusiva. Os testes atuais confirmam o comportamento padrão da comparação, mas não cobrem diretamente esse novo caminho.
 
 ## Limitações conhecidas
 
 - **Equivalência unitária:** `verificar_equivalencia()` utiliza `Operator.from_circuit()` e `Operator.equiv()`. É adequada aos circuitos unitários pequenos estudados; não é uma verificação geral de circuitos com medições, `reset`, ruído ou fluxo clássico.
 - **Custo computacional:** a construção de operadores completos cresce exponencialmente com o número de qubits. Não há ainda limite de tamanho implementado para entradas externas.
-- **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. As funções `avaliar_proposta_ia()` e `analisar_adaptacao_hardware()` registram essa situação como `"nao_verificado"`. `comparar_niveis()` ainda não possui esse tratamento específico.
+- **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. `avaliar_proposta_ia()`, `analisar_adaptacao_hardware()` e, agora, `comparar_niveis()` registram esse `ValueError` como `"nao_verificado"`, preenchendo `motivo`. Erros de transpilação ou outros tipos de exceção não são cobertos automaticamente por esse tratamento.
 - **Diferença de qubits:** o verificador atual retorna `False` quando os circuitos têm quantidades diferentes de qubits.
 - **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
 - **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
@@ -202,7 +214,7 @@ Os nove testes passaram durante a execução local realizada no desenvolvimento.
 
 No GrowUp completo, o agente RAG poderá consultar sua base de conhecimento e **propor** melhorias em circuitos. O módulo Qiskit será responsável por análises e verificações técnicas dessas propostas, quando aplicáveis.
 
-Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. A integração é responsabilidade compartilhada com os integrantes que desenvolvem os outros componentes, no repositório principal.
+Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. O trabalho aqui é disponibilizar e preparar as funções Qiskit para consumo externo; o contrato de entrada e saída ainda precisa ser alinhado com o responsável pela API. A conexão efetiva com endpoints e com o agente acontece no projeto principal.
 
 ### Próximos passos
 
@@ -210,10 +222,11 @@ Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou front
 - [x] Comparar níveis de otimização e explorar conectividade e portas nativas.
 - [x] Implementar avaliação estruturada de propostas de circuitos.
 - [x] Criar demonstração usando o módulo reutilizável.
-- [x] Adicionar nove testes automatizados e documentar limitações.
-- [ ] Ampliar testes de entradas inválidas, layouts e casos não verificáveis.
+- [x] Ampliar a suíte de nove para 14 testes automatizados, incluindo layouts, níveis inválidos, propostas incorretas e portas não permitidas.
+- [x] Registrar status e motivo de equivalência inconclusiva em `comparar_niveis()`.
+- [ ] Testar especificamente esse novo caminho de `comparar_niveis()` e ampliar a validação de entradas inválidas.
 - [ ] Definir com a equipe um formato seguro e validado para receber circuitos externos.
-- [ ] Estabelecer limites de recursos e tratamento de erros para integração.
+- [ ] Estabelecer limites de recursos e padronizar o tratamento de erros para integração.
 - [ ] Validar a integração com API, agente RAG e fluxo ponta a ponta no projeto principal.
 - [ ] Opcional: adicionar execução automática dos testes via GitHub Actions.
 
