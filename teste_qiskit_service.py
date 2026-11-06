@@ -248,5 +248,31 @@ class TestQiskitService(unittest.TestCase):
             resultado["somente_portas_permitidas"]
         )
 
+    def test_comparar_niveis_nao_verificado(self):
+        circuito = QuantumCircuit(1, 1)
+        circuito.h(0)
+        circuito.measure(0, 0)
+
+        resultados = comparar_niveis(circuito)
+
+        self.assertEqual(
+            set(resultados),
+            {0, 1, 2, 3}
+        )
+
+        for dados in resultados.values():
+            self.assertEqual(
+                dados["status_verificacao"],
+                "nao_verificado"
+            )
+
+            self.assertIsNone(
+                dados["equivalente"]
+            )
+
+            self.assertIsNotNone(
+                dados["motivo"]
+            )
+    
 if __name__ == "__main__":
     unittest.main()
