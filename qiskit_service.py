@@ -76,6 +76,7 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
             "Não foi possível verificar equivalência pelo método de operadores unitários."
         ) from erro
 
+
 def comparar_niveis(circuito: QuantumCircuit):
     """
     Compara o circuito original com suas versões
@@ -87,14 +88,34 @@ def comparar_niveis(circuito: QuantumCircuit):
     while nivel <= 3:
         otimizado = otimizar_circuito(circuito, nivel)
 
+        motivo = None
+
+        try:
+            equivalente = verificar_equivalencia(
+                circuito, otimizado
+            )
+
+            if equivalente:
+                status = "equivalente"
+            else:
+                status = "nao_equivalente"
+
+        except ValueError as erro:
+            equivalente = None
+            status = "nao_verificado"
+            motivo = str(erro)
+
         resultados[nivel] = {
             "metricas": obter_metricas(otimizado),
-            "equivalente": verificar_equivalencia(circuito, otimizado)
+            "equivalente": equivalente,
+            "status_verificacao": status,
+            "motivo": motivo
         }
-        nivel += 1
-        
-    return resultados   
 
+        nivel += 1
+
+    return resultados
+  
 def analisar_adaptacao_hardware(original: QuantumCircuit, adaptado: QuantumCircuit, portas_nativas: list[str] | None = None):
     """
     Compara um circuito original com sua versão
