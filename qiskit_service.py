@@ -8,6 +8,11 @@ def obter_metricas(circuito: QuantumCircuit):
     Analisa um circuito quântico e retorna
     suas principais métricas.
     """
+    if not isinstance(circuito, QuantumCircuit):
+        raise TypeError(
+            "O parâmetro 'circuito' deve ser um QuantumCircuit."
+        )
+    
     metricas = {
         "qubits": circuito.num_qubits,
         "total_operacoes": circuito.size(),

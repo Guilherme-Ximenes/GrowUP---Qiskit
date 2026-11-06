@@ -273,6 +273,20 @@ class TestQiskitService(unittest.TestCase):
             self.assertIsNotNone(
                 dados["motivo"]
             )
+
+    
+    def test_metricas_entrada_invalida(self):
+        entradas_invalidas = [
+            "circuito invalido",
+            None,
+            123
+        ]
+
+        for entrada in entradas_invalidas:
+            with self.subTest(entrada=entrada):
+                with self.assertRaises(TypeError):
+                    obter_metricas(entrada)
+
     
 if __name__ == "__main__":
     unittest.main()
