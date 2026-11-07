@@ -326,5 +326,33 @@ class TestQiskitService(unittest.TestCase):
                         entrada
                     )
 
+    
+    def test_limite_qubits_equivalencia(self):
+
+        circuito_grande = QuantumCircuit(11)
+
+        with self.assertRaises(ValueError):
+            verificar_equivalencia(
+                circuito_grande,
+                circuito_grande
+            )
+
+        circuito_pequeno = QuantumCircuit(2)
+
+        with self.assertRaises(ValueError):
+            verificar_equivalencia(
+                circuito_pequeno,
+                circuito_pequeno,
+                limite_qubits=1
+            )
+
+        self.assertTrue(
+            verificar_equivalencia(
+                circuito_pequeno,
+                circuito_pequeno,
+                limite_qubits=2
+            )
+        )
+
 if __name__ == "__main__":
     unittest.main()

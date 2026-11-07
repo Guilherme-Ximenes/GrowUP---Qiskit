@@ -69,7 +69,7 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
     )
     return otimizado
 
-def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
+def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, limite_qubits: int=10):
     """
     Verifica equivalência de circuitos unitários,
     considerando os metadados de layout.
@@ -80,8 +80,19 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     validar_circuito(original)
     validar_circuito(otimizado)
 
+    if type(limite_qubits) is not int or limite_qubits < 1:
+            raise ValueError(
+                "O limite de qubits deve ser um inteiro positivo."
+            )
+    
     if original.num_qubits != otimizado.num_qubits:
         return False
+
+    if original.num_qubits > limite_qubits:
+        raise ValueError(
+            f"O circuito possui {original.num_qubits} qubits, "
+            f"acima do limite permitido de {limite_qubits}."
+        )
     
     try:
         operador_original = Operator.from_circuit(original)
