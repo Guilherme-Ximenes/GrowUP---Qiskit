@@ -6,6 +6,7 @@ from qiskit.transpiler import CouplingMap
 from qiskit_service import (obter_metricas, otimizar_circuito, verificar_equivalencia, comparar_niveis, otimizar_para_hardware, analisar_adaptacao_hardware, avaliar_proposta_ia, carregar_circuito_qasm, exportar_circuito_qasm, processar_circuito_qasm)
 
 class TestQiskitService(unittest.TestCase):
+
     def test_carregar_circuito_qasm(self):
         original = QuantumCircuit(2)
         original.h(0)
@@ -27,6 +28,25 @@ class TestQiskitService(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             carregar_circuito_qasm("X" * 10001)
+
+        qasm_muitos_qubits = (
+            "OPENQASM 2.0;\n"
+            "qreg q[33];\n"
+        )
+
+        with self.assertRaisesRegex(ValueError, "qubits"):
+            carregar_circuito_qasm(qasm_muitos_qubits)
+
+        qasm_muitas_operacoes = (
+            "OPENQASM 2.0;\n"
+            'include "qelib1.inc";\n'
+            "qreg q[1];\n"
+            + "x q[0];\n" * 501
+        )
+
+        with self.assertRaisesRegex(ValueError, "operações"):
+            carregar_circuito_qasm(qasm_muitas_operacoes)
+
 
     def test_processar_circuito_qasm(self):
         circuito = QuantumCircuit(2)

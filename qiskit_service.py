@@ -1,11 +1,15 @@
+import re
+
 from qiskit import QuantumCircuit, transpile, qasm2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 
 MAX_CARACTERES_QASM = 10_000
-
 LIM_MAX_EQUIV = 10
+MAX_QUBITS_QASM = 32
+MAX_BITS_CLASSICOS_QASM = 32
+MAX_OPERACOES_QASM = 500
 
 # ==== Funções ====
 def validar_circuito(circuito):
@@ -14,25 +18,59 @@ def validar_circuito(circuito):
             "O circuito deve ser um QuantumCircuit."
         )
 
-
 def carregar_circuito_qasm(texto_qasm: str):
     """
-    Converte um texto OpenQASM 2 em QuantumCircuit.
+    Converte texto OpenQASM 2 em QuantumCircuit,
+    aplicando validações básicas de entrada.
     """
 
     if not isinstance(texto_qasm, str):
-        raise TypeError(
-            "O OpenQASM deve ser uma string."
-        )
+        raise TypeError("O OpenQASM deve ser uma string.")
 
     if not texto_qasm.strip():
-        raise ValueError(
-            "O texto OpenQASM não pode estar vazio."
-        )
+        raise ValueError("O texto OpenQASM não pode estar vazio.")
 
     if len(texto_qasm) > MAX_CARACTERES_QASM:
         raise ValueError(
             "O texto OpenQASM ultrapassa o tamanho permitido."
+        )
+
+    # Remover comentários antes de analisar declarações
+    texto_limpo = re.sub(
+        r"//[^\n]*|/\*.*?\*/",
+        " ",
+        texto_qasm,
+        flags=re.DOTALL
+    )
+
+    # Identificar declarações qreg e creg
+    declaracoes = re.findall(
+        r"\b(qreg|creg)\s+[A-Za-z_][A-Za-z0-9_]*\s*\[\s*(\d+)\s*\]\s*;",
+        texto_limpo
+    )
+
+    total_qubits = sum(
+        int(tamanho)
+        for tipo, tamanho in declaracoes
+        if tipo == "qreg"
+    )
+
+    total_bits = sum(
+        int(tamanho)
+        for tipo, tamanho in declaracoes
+        if tipo == "creg"
+    )
+
+    if total_qubits > MAX_QUBITS_QASM:
+        raise ValueError(
+            f"O circuito ultrapassa o limite de "
+            f"{MAX_QUBITS_QASM} qubits."
+        )
+
+    if total_bits > MAX_BITS_CLASSICOS_QASM:
+        raise ValueError(
+            f"O circuito ultrapassa o limite de "
+            f"{MAX_BITS_CLASSICOS_QASM} bits clássicos."
         )
 
     try:
@@ -40,13 +78,26 @@ def carregar_circuito_qasm(texto_qasm: str):
             texto_qasm,
             include_path=()
         )
-        return circuito
 
     except qasm2.QASM2Error as erro:
         raise ValueError(
             "Não foi possível interpretar o OpenQASM 2."
         ) from erro
 
+    # Conferência do circuito reconstruído
+    if circuito.num_qubits > MAX_QUBITS_QASM:
+        raise ValueError("Limite de qubits excedido.")
+
+    if circuito.num_clbits > MAX_BITS_CLASSICOS_QASM:
+        raise ValueError("Limite de bits clássicos excedido.")
+
+    if circuito.size() > MAX_OPERACOES_QASM:
+        raise ValueError(
+            f"O circuito ultrapassa o limite de "
+            f"{MAX_OPERACOES_QASM} operações."
+        )
+
+    return circuito
 
 def exportar_circuito_qasm(circuito: QuantumCircuit):
     """
