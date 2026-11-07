@@ -1,15 +1,91 @@
-from qiskit import QuantumCircuit, transpile
+from qiskit import QuantumCircuit, transpile, qasm2
 from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 
-lim_max_equiv = 10
+MAX_CARACTERES_QASM = 10_000
 
+LIM_MAX_EQUIV = 10
+
+# ==== Funções ====
 def validar_circuito(circuito):
     if not isinstance(circuito, QuantumCircuit):
         raise TypeError(
             "O circuito deve ser um QuantumCircuit."
         )
+
+
+def carregar_circuito_qasm(texto_qasm: str):
+    """
+    Converte um texto OpenQASM 2 em QuantumCircuit.
+    """
+
+    if not isinstance(texto_qasm, str):
+        raise TypeError(
+            "O OpenQASM deve ser uma string."
+        )
+
+    if not texto_qasm.strip():
+        raise ValueError(
+            "O texto OpenQASM não pode estar vazio."
+        )
+
+    if len(texto_qasm) > MAX_CARACTERES_QASM:
+        raise ValueError(
+            "O texto OpenQASM ultrapassa o tamanho permitido."
+        )
+
+    try:
+        circuito = qasm2.loads(
+            texto_qasm,
+            include_path=()
+        )
+        return circuito
+
+    except qasm2.QASM2Error as erro:
+        raise ValueError(
+            "Não foi possível interpretar o OpenQASM 2."
+        ) from erro
+
+
+def exportar_circuito_qasm(circuito: QuantumCircuit):
+    """
+    Converte um QuantumCircuit em texto OpenQASM 2.
+    """
+    validar_circuito(circuito)
+
+    try:
+        return qasm2.dumps(circuito)
+
+    except qasm2.QASM2Error as erro:
+        raise ValueError(
+            "Não foi possível exportar o circuito para OpenQASM 2."
+        ) from erro
+
+
+def processar_circuito_qasm(texto_qasm: str, nivel_otimizacao: int = 3):
+    """
+    Recebe OpenQASM 2, otimiza o circuito e retorna
+    resultados utilizáveis pela API.
+    """
+    original = carregar_circuito_qasm(texto_qasm)
+
+    otimizado = otimizar_circuito(
+        original,
+        nivel_otimizacao
+    )
+
+    resultado = avaliar_proposta_ia(
+        original,
+        otimizado
+    )
+
+    resultado["circuito_otimizado_qasm"] = (
+        exportar_circuito_qasm(otimizado)
+    )
+
+    return resultado
+
     
 def obter_metricas(circuito: QuantumCircuit):
     """
@@ -71,7 +147,7 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
     )
     return otimizado
 
-def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, limite_qubits: int = lim_max_equiv):
+def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, limite_qubits: int = LIM_MAX_EQUIV):
     """
     Verifica equivalência de circuitos unitários,
     considerando os metadados de layout.
@@ -87,10 +163,10 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, 
                 "O limite de qubits deve ser um inteiro positivo."
             )
     
-    if limite_qubits > lim_max_equiv:
+    if limite_qubits > LIM_MAX_EQUIV:
         raise ValueError(
             f"O limite de qubits não pode ultrapassar "
-            f"{lim_max_equiv}."
+            f"{LIM_MAX_EQUIV}."
         )
 
     if original.num_qubits != otimizado.num_qubits:

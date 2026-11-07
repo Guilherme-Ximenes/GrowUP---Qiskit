@@ -1,11 +1,57 @@
 import unittest
 
-from qiskit import QuantumCircuit
+from qiskit import QuantumCircuit, qasm2
 from qiskit.transpiler import CouplingMap
 
-from qiskit_service import (obter_metricas, otimizar_circuito, verificar_equivalencia, comparar_niveis, otimizar_para_hardware, analisar_adaptacao_hardware, avaliar_proposta_ia)
+from qiskit_service import (obter_metricas, otimizar_circuito, verificar_equivalencia, comparar_niveis, otimizar_para_hardware, analisar_adaptacao_hardware, avaliar_proposta_ia, carregar_circuito_qasm, exportar_circuito_qasm, processar_circuito_qasm)
 
 class TestQiskitService(unittest.TestCase):
+    def test_carregar_circuito_qasm(self):
+        original = QuantumCircuit(2)
+        original.h(0)
+        original.cx(0, 1)
+
+        texto = qasm2.dumps(original)
+
+        reconstruido = carregar_circuito_qasm(texto)
+
+        self.assertTrue(
+            verificar_equivalencia(original, reconstruido)
+        )
+
+        with self.assertRaises(TypeError):
+            carregar_circuito_qasm(None)
+
+        with self.assertRaises(ValueError):
+            carregar_circuito_qasm("texto invalido")
+
+        with self.assertRaises(ValueError):
+            carregar_circuito_qasm("X" * 10001)
+
+    def test_processar_circuito_qasm(self):
+        circuito = QuantumCircuit(2)
+        circuito.x(0)
+        circuito.x(0)
+        circuito.h(0)
+        circuito.cx(0, 1)
+
+        texto = qasm2.dumps(circuito)
+
+        resultado = processar_circuito_qasm(texto)
+
+        reconstruido = carregar_circuito_qasm(
+            resultado["circuito_otimizado_qasm"]
+        )
+
+        self.assertTrue(
+            verificar_equivalencia(circuito, reconstruido)
+        )
+
+        self.assertEqual(
+            resultado["status_verificacao"],
+            "equivalente"
+        )
+
 
     def test_metricas(self):
         circuito = QuantumCircuit(2)
