@@ -1,5 +1,7 @@
 import unittest
 
+import json
+
 from qiskit import QuantumCircuit, qasm2
 from qiskit.transpiler import CouplingMap
 
@@ -71,6 +73,8 @@ class TestQiskitService(unittest.TestCase):
             resultado["status_verificacao"],
             "equivalente"
         )
+
+        json.dumps(resultado, ensure_ascii=False)
 
 
     def test_metricas(self):
