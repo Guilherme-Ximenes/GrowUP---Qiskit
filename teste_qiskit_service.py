@@ -275,18 +275,56 @@ class TestQiskitService(unittest.TestCase):
             )
 
     
-    def test_metricas_entrada_invalida(self):
+    def test_circuito_entrada_invalida(self):
         entradas_invalidas = [
             "circuito invalido",
             None,
             123
         ]
 
+        circuito_valido = QuantumCircuit(1)
+
+        conectividade_valida = CouplingMap.from_line(2)
+
         for entrada in entradas_invalidas:
             with self.subTest(entrada=entrada):
+
                 with self.assertRaises(TypeError):
                     obter_metricas(entrada)
 
+                with self.assertRaises(TypeError):
+                    otimizar_circuito(entrada)
+
+                with self.assertRaises(TypeError):
+                    verificar_equivalencia(
+                        entrada, circuito_valido
+                    )
+                with self.assertRaises(TypeError):
+                    verificar_equivalencia(
+                        circuito_valido, entrada
+                    )
+                with self.assertRaises(TypeError):
+                    otimizar_para_hardware(
+                        entrada,
+                        conectividade_valida
+                    )
     
+    def test_conectividade_invalida(self):
+        circuito = QuantumCircuit(2)
+
+        entradas_invalidas = [
+            None,
+            "conectividade invalida",
+            123
+        ]
+
+        for entrada in entradas_invalidas:
+            with self.subTest(entrada=entrada):
+                with self.assertRaises(TypeError):
+                    otimizar_para_hardware(
+                        circuito,
+                        entrada
+                    )
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,15 +3,18 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 
+def validar_circuito(circuito):
+    if not isinstance(circuito, QuantumCircuit):
+        raise TypeError(
+            "O circuito deve ser um QuantumCircuit."
+        )
+    
 def obter_metricas(circuito: QuantumCircuit):
     """
     Analisa um circuito quântico e retorna
     suas principais métricas.
     """
-    if not isinstance(circuito, QuantumCircuit):
-        raise TypeError(
-            "O parâmetro 'circuito' deve ser um QuantumCircuit."
-        )
+    validar_circuito(circuito)
     
     metricas = {
         "qubits": circuito.num_qubits,
@@ -27,6 +30,8 @@ def otimizar_circuito(circuito:QuantumCircuit, nivel_otimizacao:int=3):
     de otimização, sendo o padrão 3, e faz o processo
     com transpile.
     '''
+    validar_circuito(circuito)
+
     if nivel_otimizacao not in (0, 1, 2, 3):
         raise ValueError("Nível de otimização deve ser 0, 1, 2 ou 3.")
 
@@ -42,6 +47,13 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
     Adapta um circuito quântico às restrições
     de conectividade e portas nativas do hardware.
     """
+    validar_circuito(circuito)
+
+    if not isinstance(conectividade, CouplingMap):
+        raise TypeError(
+            "O parâmetro 'conectividade' deve ser um CouplingMap."
+        )
+
     if nivel_otimizacao not in (0, 1, 2, 3):
         raise ValueError("Nível de otimização deve ser 0, 1, 2 ou 3.")
 
@@ -65,6 +77,9 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit):
     Gera ValueError caso a comparação não
     possa ser realizada.
     """
+    validar_circuito(original)
+    validar_circuito(otimizado)
+
     if original.num_qubits != otimizado.num_qubits:
         return False
     
