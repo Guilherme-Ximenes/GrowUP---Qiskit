@@ -308,23 +308,6 @@ No GrowUp completo, o agente RAG poderá consultar sua base de conhecimento e **
 
 Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. O trabalho aqui é disponibilizar as funções Qiskit e um adaptador Python para OpenQASM 2. O contrato JSON/HTTP definitivo ainda precisa ser alinhado com o responsável pela API. A conexão efetiva com endpoints e com o agente acontece no projeto principal.
 
-### Próximos passos
-
-- [x] Criar funções reutilizáveis para métricas, otimização e equivalência.
-- [x] Comparar níveis de otimização e explorar conectividade e portas nativas.
-- [x] Implementar avaliação estruturada de propostas de circuitos.
-- [x] Criar demonstração usando o módulo reutilizável.
-- [x] Ampliar a suíte para 20 testes automatizados, incluindo layouts, entradas inválidas, casos não verificáveis e o fluxo OpenQASM 2.
-- [x] Registrar status e motivo de equivalência inconclusiva em `comparar_niveis()` e testar esse caminho.
-- [x] Centralizar a validação do tipo `QuantumCircuit` e validar o tipo da conectividade (`CouplingMap`).
-- [x] Definir limite padrão e teto de 10 qubits na verificação de equivalência, com testes de limites inválidos.
-- [x] Implementar funções Python para importação, exportação e processamento integrado de OpenQASM 2.
-- [x] Adicionar limites iniciais na importação (10.000 caracteres, 32 qubits, 32 bits clássicos e 500 operações) e teste de serialização JSON.
-- [ ] Alinhar com Vlad o contrato JSON/HTTP definitivo, rotas e tratamento de erros na API.
-- [ ] Estabelecer limites efetivos de tempo/memória, isolamento e validação mais robusta antes de expor o serviço a entradas públicas.
-- [ ] Validar a integração com API, agente RAG e fluxo ponta a ponta no projeto principal.
-- [ ] Opcional: adicionar execução automática dos testes via GitHub Actions.
-
 ## Referências
 
 - [Documentação oficial do Qiskit](https://quantum.cloud.ibm.com/docs)
