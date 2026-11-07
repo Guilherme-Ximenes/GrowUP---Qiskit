@@ -21,7 +21,7 @@ O arquivo principal, `qiskit_service.py`, disponibiliza estas dez funções de u
 | `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas. |
 | `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)` | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado. |
 | `avaliar_proposta_ia(original, proposta)` | Avalia uma proposta de circuito comparando métricas e verificando equivalência. |
-| `carregar_circuito_qasm(texto_qasm)` | Importa texto OpenQASM 2 para `QuantumCircuit`, validando tipo, conteúdo e tamanho. |
+| `carregar_circuito_qasm(texto_qasm)` | Importa texto OpenQASM 2 para `QuantumCircuit`, verificando tipo, tamanho do texto, registradores e quantidade de operações. |
 | `exportar_circuito_qasm(circuito)` | Converte um circuito compatível para texto OpenQASM 2. |
 | `processar_circuito_qasm(texto_qasm, nivel_otimizacao=3)` | Importa, otimiza, analisa e devolve as métricas, o status de equivalência e o circuito otimizado em OpenQASM 2. |
 
@@ -222,7 +222,7 @@ print(resultado["circuito_otimizado_qasm"])
 print(json.dumps(resultado, ensure_ascii=False, indent=2))
 ~~~
 
-O retorno é um dicionário com **original**, **proposta** (métricas), **equivalente**, **status_verificacao**, **motivo**, **diferenca_operacoes**, **diferenca_profundidade**, **reduziu_operacoes**, **reduziu_profundidade** e **circuito_otimizado_qasm**. O exemplo demonstra a serialização JSON; ainda não há um teste automatizado exclusivo para isso.
+O retorno é um dicionário com **original**, **proposta** (métricas), **equivalente**, **status_verificacao**, **motivo**, **diferenca_operacoes**, **diferenca_profundidade**, **reduziu_operacoes**, **reduziu_profundidade** e **circuito_otimizado_qasm**. O exemplo demonstra a serialização JSON. O teste integrado `test_processar_circuito_qasm()` também executa `json.dumps(resultado, ensure_ascii=False)` para verificar a serialização.
 
 ### Formato JSON proposto para alinhamento com Vlad
 
@@ -237,13 +237,26 @@ Este é um **exemplo de contrato sugerido**, não um endpoint existente ou um fo
 
 No projeto principal, o serviço FastAPI poderá ler esses campos, chamar a função Python e serializar o dicionário retornado. A rota HTTP, os códigos de resposta, o esquema definitivo e a conexão com o agente RAG ainda precisam ser definidos pela equipe.
 
-### Validações e limitações
+### Validações e limites implementados
 
-- **Entrada textual:** aceita somente string não vazia com até **10.000 caracteres**, conforme MAX_CARACTERES_QASM; entradas inadequadas geram TypeError ou ValueError.
-- **Importação:** utiliza qasm2.loads() com include_path=(), evitando procurar arquivos externos de inclusão. Erros QASM2Error de conversão são apresentados como ValueError.
-- **Exportação:** utiliza qasm2.dumps(); nem todo recurso de QuantumCircuit é representável em OpenQASM 2.
-- **Equivalência:** a verificação unitária tem teto de **10 qubits** (LIM_MAX_EQUIV), mas isso não limita o carregamento e a otimização. Circuitos maiores podem ser otimizados e receber status **nao_verificado**.
-- **Segurança:** texto curto pode declarar circuitos grandes. Ainda não há limites globais de número de qubits, operações, tempo ou memória para importação/transpilação, nem isolamento do processamento. Não expor a entradas públicas não confiáveis sem essas proteções.
+A função `carregar_circuito_qasm()` aplica os seguintes limites iniciais:
+
+| Recurso | Constante no código | Limite |
+| --- | --- | --- |
+| Comprimento do texto OpenQASM 2 | `MAX_CARACTERES_QASM` | 10.000 caracteres |
+| Qubits do circuito importado | `MAX_QUBITS_QASM` | 32 qubits |
+| Bits clássicos do circuito importado | `MAX_BITS_CLASSICOS_QASM` | 32 bits |
+| Operações do circuito importado | `MAX_OPERACOES_QASM` | 500 operações |
+| Verificação de equivalência unitária | `LIM_MAX_EQUIV` | 10 qubits |
+
+- **Antes da conversão:** a entrada deve ser uma string não vazia dentro do limite de caracteres. Uma pré-verificação com expressões regulares identifica declarações convencionais `qreg` e `creg`, ignorando comentários, para rejeitar registradores que ultrapassem os limites de qubits e bits clássicos.
+- **Durante a conversão:** `qasm2.loads(texto_qasm, include_path=())` interpreta OpenQASM 2 sem buscar arquivos de inclusão em diretórios externos. Erros `QASM2Error` são convertidos em `ValueError`.
+- **Depois da conversão:** o circuito reconstruído é conferido por `num_qubits`, `num_clbits` e `size()`. O limite de **500 operações é conferido somente após o parsing**, não antes.
+- **Exportação:** `qasm2.dumps()` converte circuitos compatíveis; nem todo recurso do Qiskit é representável em OpenQASM 2. O circuito otimizado exportado não recebe nessa função uma nova conferência desses limites de entrada.
+- **Equivalência:** a análise por operadores unitários permanece limitada a 10 qubits. Circuitos com mais qubits podem ser otimizados, mas sua equivalência pode ser classificada como `"nao_verificado"`.
+- **Erros:** tipo inadequado gera `TypeError`; textos vazios, inválidos ou que excedem os limites geram `ValueError`. A interpretação dos erros como respostas HTTP será responsabilidade do serviço de integração.
+
+**Limitação de segurança:** a pré-verificação com expressões regulares não substitui um parser seguro ou um isolamento de execução. Um texto malicioso ou uma definição de operações complexas ainda pode consumir recursos durante o parsing ou a transpilação. Não há limites de tempo, memória ou isolamento de processo. Não exponha esse adaptador diretamente a entradas públicas não confiáveis sem essas proteções.
 
 ## Testes automatizados
 
@@ -273,20 +286,21 @@ Os testes atualmente cobrem:
 - Rejeição de entradas que não sejam `QuantumCircuit` nas funções principais e rejeição de conectividade que não seja `CouplingMap`;
 - Limite padrão de 10 qubits, limite personalizado menor e rejeição de limites inválidos ou superiores ao teto, incluindo `0`, `-1`, `True`, `"10"`, `11` e `30`;
 - Carregamento de OpenQASM 2 válido e rejeição de tipo inválido, texto inválido e texto acima do limite de caracteres;
-- Processamento integrado OpenQASM 2, exportação do circuito otimizado e verificação de equivalência em exemplo simples.
+- Processamento integrado OpenQASM 2, exportação do circuito otimizado, verificação de equivalência e serialização do resultado com `json.dumps()` em exemplo simples;
+- Rejeição de uma declaração de 33 qubits e de um circuito com 501 operações na importação OpenQASM 2.
 
 A suíte possui **20 métodos de teste**. Para confirmar o resultado no ambiente de execução, rode o comando acima. **Ainda não existe integração contínua (CI)** configurada no repositório para executá-los automaticamente a cada push. A cobertura atual não garante ausência de erros em todos os casos.
 
 ## Limitações conhecidas
 
 - **Equivalência unitária:** `verificar_equivalencia()` utiliza `Operator.from_circuit()` e `Operator.equiv()`. É adequada aos circuitos unitários pequenos estudados; não é uma verificação geral de circuitos com medições, `reset`, ruído ou fluxo clássico.
-- **Custo computacional:** a construção de operadores completos cresce exponencialmente com o número de qubits. Existe um teto de 10 qubits na verificação unitária, mas ainda não há limites globais de operações, tempo de transpilação ou recursos para entradas externas. O teto é uma proteção dentro do código Python, não um mecanismo de isolamento de processos.
+- **Custo computacional:** a construção de operadores completos cresce exponencialmente com o número de qubits. A verificação unitária possui teto de 10 qubits; o carregamento OpenQASM tem limites de 32 qubits, 32 bits clássicos e 500 operações. Entretanto, os limites de operações são conferidos após o parsing, e **não há limitação de tempo/memória nem isolamento de processos**. Isso não equivale à proteção de um serviço público.
 - **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. `avaliar_proposta_ia()`, `analisar_adaptacao_hardware()` e, agora, `comparar_niveis()` registram esse `ValueError` como `"nao_verificado"`, preenchendo `motivo`. Erros de transpilação ou outros tipos de exceção não são cobertos automaticamente por esse tratamento.
 - **Diferença de qubits:** o verificador atual retorna `False` quando os circuitos têm quantidades diferentes de qubits.
 - **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
 - **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
 - **Métricas:** menor contagem de operações ou profundidade não assegura menor erro ou melhor execução em hardware real.
-- **Propostas externas:** o módulo já importa e exporta OpenQASM 2 por funções Python, mas o contrato JSON/HTTP ainda não é definitivo e faltam limites globais de processamento e validações completas de entradas externas. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
+- **Propostas externas:** o módulo já importa e exporta OpenQASM 2 por funções Python, com validações iniciais e limites no carregamento. O contrato JSON/HTTP ainda não é definitivo, os limites não cobrem todas as fases do processamento e não há isolamento de recursos. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
 
 ## Integração com o projeto principal
 
@@ -305,8 +319,9 @@ Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou front
 - [x] Centralizar a validação do tipo `QuantumCircuit` e validar o tipo da conectividade (`CouplingMap`).
 - [x] Definir limite padrão e teto de 10 qubits na verificação de equivalência, com testes de limites inválidos.
 - [x] Implementar funções Python para importação, exportação e processamento integrado de OpenQASM 2.
-- [ ] Definir com a equipe o contrato JSON/HTTP definitivo e validar entradas externas.
-- [ ] Estabelecer limites globais de recursos e padronizar o tratamento de erros para integração.
+- [x] Adicionar limites iniciais na importação (10.000 caracteres, 32 qubits, 32 bits clássicos e 500 operações) e teste de serialização JSON.
+- [ ] Alinhar com Vlad o contrato JSON/HTTP definitivo, rotas e tratamento de erros na API.
+- [ ] Estabelecer limites efetivos de tempo/memória, isolamento e validação mais robusta antes de expor o serviço a entradas públicas.
 - [ ] Validar a integração com API, agente RAG e fluxo ponta a ponta no projeto principal.
 - [ ] Opcional: adicionar execução automática dos testes via GitHub Actions.
 
