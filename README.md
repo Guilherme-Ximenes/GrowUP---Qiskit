@@ -6,11 +6,11 @@ Este repositório reúne funções Python com Qiskit para analisar métricas, tr
 
 O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. A integração com o agente de IA e os demais serviços será feita no projeto principal da equipe.
 
-> **Estado atual:** módulo funcional de prova de conceito, com sete funções principais, uma função auxiliar de validação, uma demonstração executável e 18 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
+> **Estado atual:** módulo funcional de prova de conceito, com dez funções principais, uma função auxiliar de validação, uma demonstração executável e 20 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
 
 ## Escopo e funcionalidades
 
-O arquivo principal, `qiskit_service.py`, disponibiliza estas sete funções de uso principal:
+O arquivo principal, `qiskit_service.py`, disponibiliza estas dez funções de uso principal:
 
 | Função | Responsabilidade |
 | --- | --- |
@@ -21,6 +21,9 @@ O arquivo principal, `qiskit_service.py`, disponibiliza estas sete funções de 
 | `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas. |
 | `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)` | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado. |
 | `avaliar_proposta_ia(original, proposta)` | Avalia uma proposta de circuito comparando métricas e verificando equivalência. |
+| `carregar_circuito_qasm(texto_qasm)` | Importa texto OpenQASM 2 para `QuantumCircuit`, validando tipo, conteúdo e tamanho. |
+| `exportar_circuito_qasm(circuito)` | Converte um circuito compatível para texto OpenQASM 2. |
+| `processar_circuito_qasm(texto_qasm, nivel_otimizacao=3)` | Importa, otimiza, analisa e devolve as métricas, o status de equivalência e o circuito otimizado em OpenQASM 2. |
 
 A função auxiliar `validar_circuito()` centraliza a verificação de tipos para argumentos que devem ser objetos `QuantumCircuit`.
 
@@ -46,7 +49,7 @@ Diferenças de métricas são calculadas como **valor do circuito adaptado/propo
 
 As funções que recebem circuitos verificam, diretamente ou por meio de outras funções do módulo, se os argumentos são objetos `QuantumCircuit`. `otimizar_para_hardware()` também exige que `conectividade` seja um `CouplingMap`. Um tipo de entrada inválido gera `TypeError`; níveis de otimização fora dos valores aceitos (`0`, `1`, `2` ou `3`) geram `ValueError`.
 
-A função `verificar_equivalencia()` usa o parâmetro `limite_qubits`, cujo valor padrão é **10**. No código atual, `lim_max_equiv = 10` também define um **teto máximo**: a chamada pode solicitar um limite inteiro positivo menor, mas não pode solicitar um limite maior do que 10.
+A função `verificar_equivalencia()` usa o parâmetro `limite_qubits`, cujo valor padrão é **10**. No código atual, `LIM_MAX_EQUIV = 10` também define um **teto máximo**: a chamada pode solicitar um limite inteiro positivo menor, mas não pode solicitar um limite maior do que 10.
 
 ```python
 from qiskit import QuantumCircuit
@@ -194,9 +197,57 @@ print(analise)
 
 O mapa linear e a lista de portas são **exemplos didáticos**, não a caracterização completa de um dispositivo quântico real.
 
+## Integração inicial por OpenQASM 2
+
+O módulo agora dispõe de um adaptador Python: **texto OpenQASM 2 → QuantumCircuit → otimização/análise → texto OpenQASM 2**. Ele não publica endpoints HTTP. A função de entrada principal para esse fluxo é **processar_circuito_qasm()**.
+
+### Exemplo em Python
+
+~~~python
+import json
+from qiskit import QuantumCircuit, qasm2
+from qiskit_service import processar_circuito_qasm
+
+circuito = QuantumCircuit(2)
+circuito.x(0)
+circuito.x(0)
+circuito.h(0)
+circuito.cx(0, 1)
+
+texto = qasm2.dumps(circuito)
+resultado = processar_circuito_qasm(texto, nivel_otimizacao=3)
+
+print(resultado["status_verificacao"])
+print(resultado["circuito_otimizado_qasm"])
+print(json.dumps(resultado, ensure_ascii=False, indent=2))
+~~~
+
+O retorno é um dicionário com **original**, **proposta** (métricas), **equivalente**, **status_verificacao**, **motivo**, **diferenca_operacoes**, **diferenca_profundidade**, **reduziu_operacoes**, **reduziu_profundidade** e **circuito_otimizado_qasm**. O exemplo demonstra a serialização JSON; ainda não há um teste automatizado exclusivo para isso.
+
+### Formato JSON proposto para alinhamento com Vlad
+
+Este é um **exemplo de contrato sugerido**, não um endpoint existente ou um formato definitivamente acordado:
+
+~~~json
+{
+  "circuito_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];",
+  "nivel_otimizacao": 3
+}
+~~~
+
+No projeto principal, o serviço FastAPI poderá ler esses campos, chamar a função Python e serializar o dicionário retornado. A rota HTTP, os códigos de resposta, o esquema definitivo e a conexão com o agente RAG ainda precisam ser definidos pela equipe.
+
+### Validações e limitações
+
+- **Entrada textual:** aceita somente string não vazia com até **10.000 caracteres**, conforme MAX_CARACTERES_QASM; entradas inadequadas geram TypeError ou ValueError.
+- **Importação:** utiliza qasm2.loads() com include_path=(), evitando procurar arquivos externos de inclusão. Erros QASM2Error de conversão são apresentados como ValueError.
+- **Exportação:** utiliza qasm2.dumps(); nem todo recurso de QuantumCircuit é representável em OpenQASM 2.
+- **Equivalência:** a verificação unitária tem teto de **10 qubits** (LIM_MAX_EQUIV), mas isso não limita o carregamento e a otimização. Circuitos maiores podem ser otimizados e receber status **nao_verificado**.
+- **Segurança:** texto curto pode declarar circuitos grandes. Ainda não há limites globais de número de qubits, operações, tempo ou memória para importação/transpilação, nem isolamento do processamento. Não expor a entradas públicas não confiáveis sem essas proteções.
+
 ## Testes automatizados
 
-O arquivo `teste_qiskit_service.py` contém **18 métodos de teste automatizado** com a biblioteca padrão `unittest` do Python.
+O arquivo `teste_qiskit_service.py` contém **20 métodos de teste automatizado** com a biblioteca padrão `unittest` do Python.
 
 Execute:
 
@@ -220,9 +271,11 @@ Os testes atualmente cobrem:
 - Avaliação de proposta correta e incorreta, sem considerar uma redução de operações como válida quando a proposta não é equivalente;
 - Tratamento de propostas com medição e de `comparar_niveis()` quando a equivalência unitária não pode ser verificada;
 - Rejeição de entradas que não sejam `QuantumCircuit` nas funções principais e rejeição de conectividade que não seja `CouplingMap`;
-- Limite padrão de 10 qubits, limite personalizado menor e rejeição de limites inválidos ou superiores ao teto, incluindo `0`, `-1`, `True`, `"10"`, `11` e `30`.
+- Limite padrão de 10 qubits, limite personalizado menor e rejeição de limites inválidos ou superiores ao teto, incluindo `0`, `-1`, `True`, `"10"`, `11` e `30`;
+- Carregamento de OpenQASM 2 válido e rejeição de tipo inválido, texto inválido e texto acima do limite de caracteres;
+- Processamento integrado OpenQASM 2, exportação do circuito otimizado e verificação de equivalência em exemplo simples.
 
-A suíte possui **18 métodos de teste**. Para confirmar o resultado no ambiente de execução, rode o comando acima. **Ainda não existe integração contínua (CI)** configurada no repositório para executá-los automaticamente a cada push. A cobertura atual não garante ausência de erros em todos os casos.
+A suíte possui **20 métodos de teste**. Para confirmar o resultado no ambiente de execução, rode o comando acima. **Ainda não existe integração contínua (CI)** configurada no repositório para executá-los automaticamente a cada push. A cobertura atual não garante ausência de erros em todos os casos.
 
 ## Limitações conhecidas
 
@@ -233,13 +286,13 @@ A suíte possui **18 métodos de teste**. Para confirmar o resultado no ambiente
 - **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
 - **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
 - **Métricas:** menor contagem de operações ou profundidade não assegura menor erro ou melhor execução em hardware real.
-- **Propostas externas:** o módulo recebe objetos Python `QuantumCircuit`, mas ainda não implementa um contrato de serialização e validação de dados vindos de uma API. As validações atuais cobrem tipos de objetos em funções selecionadas e o limite da equivalência; não representam uma validação completa de solicitações externas. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
+- **Propostas externas:** o módulo já importa e exporta OpenQASM 2 por funções Python, mas o contrato JSON/HTTP ainda não é definitivo e faltam limites globais de processamento e validações completas de entradas externas. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
 
 ## Integração com o projeto principal
 
 No GrowUp completo, o agente RAG poderá consultar sua base de conhecimento e **propor** melhorias em circuitos. O módulo Qiskit será responsável por análises e verificações técnicas dessas propostas, quando aplicáveis.
 
-Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. O trabalho aqui é disponibilizar e preparar as funções Qiskit para consumo externo; o contrato de entrada e saída ainda precisa ser alinhado com o responsável pela API. A conexão efetiva com endpoints e com o agente acontece no projeto principal.
+Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. O trabalho aqui é disponibilizar as funções Qiskit e um adaptador Python para OpenQASM 2. O contrato JSON/HTTP definitivo ainda precisa ser alinhado com o responsável pela API. A conexão efetiva com endpoints e com o agente acontece no projeto principal.
 
 ### Próximos passos
 
@@ -247,11 +300,12 @@ Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou front
 - [x] Comparar níveis de otimização e explorar conectividade e portas nativas.
 - [x] Implementar avaliação estruturada de propostas de circuitos.
 - [x] Criar demonstração usando o módulo reutilizável.
-- [x] Ampliar a suíte para 18 testes automatizados, incluindo layouts, níveis inválidos, propostas incorretas, portas permitidas e não permitidas, e casos não verificáveis.
+- [x] Ampliar a suíte para 20 testes automatizados, incluindo layouts, entradas inválidas, casos não verificáveis e o fluxo OpenQASM 2.
 - [x] Registrar status e motivo de equivalência inconclusiva em `comparar_niveis()` e testar esse caminho.
 - [x] Centralizar a validação do tipo `QuantumCircuit` e validar o tipo da conectividade (`CouplingMap`).
 - [x] Definir limite padrão e teto de 10 qubits na verificação de equivalência, com testes de limites inválidos.
-- [ ] Definir com a equipe um formato seguro e validado para receber circuitos externos.
+- [x] Implementar funções Python para importação, exportação e processamento integrado de OpenQASM 2.
+- [ ] Definir com a equipe o contrato JSON/HTTP definitivo e validar entradas externas.
 - [ ] Estabelecer limites globais de recursos e padronizar o tratamento de erros para integração.
 - [ ] Validar a integração com API, agente RAG e fluxo ponta a ponta no projeto principal.
 - [ ] Opcional: adicionar execução automática dos testes via GitHub Actions.
