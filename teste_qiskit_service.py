@@ -354,5 +354,16 @@ class TestQiskitService(unittest.TestCase):
             )
         )
 
+        limites_invalidos = [0, -1, True,"10", 11, 30]
+
+        for limite in limites_invalidos:
+            with self.subTest(limite=limite):
+                with self.assertRaises(ValueError):
+                    verificar_equivalencia(
+                        circuito_pequeno,
+                        circuito_pequeno,
+                        limite_qubits=limite
+                    )
+
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,8 @@ from qiskit.quantum_info import Operator
 from qiskit.transpiler import CouplingMap
 from qiskit.exceptions import QiskitError
 
+lim_max_equiv = 10
+
 def validar_circuito(circuito):
     if not isinstance(circuito, QuantumCircuit):
         raise TypeError(
@@ -69,7 +71,7 @@ def otimizar_para_hardware(circuito: QuantumCircuit, conectividade: CouplingMap,
     )
     return otimizado
 
-def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, limite_qubits: int=10):
+def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, limite_qubits: int = lim_max_equiv):
     """
     Verifica equivalência de circuitos unitários,
     considerando os metadados de layout.
@@ -85,6 +87,12 @@ def verificar_equivalencia(original: QuantumCircuit, otimizado: QuantumCircuit, 
                 "O limite de qubits deve ser um inteiro positivo."
             )
     
+    if limite_qubits > lim_max_equiv:
+        raise ValueError(
+            f"O limite de qubits não pode ultrapassar "
+            f"{lim_max_equiv}."
+        )
+
     if original.num_qubits != otimizado.num_qubits:
         return False
 
