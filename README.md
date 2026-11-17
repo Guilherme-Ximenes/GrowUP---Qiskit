@@ -4,7 +4,7 @@
 
 Este repositório reúne funções Python com Qiskit para analisar métricas, transpilar e otimizar circuitos quânticos, adaptar operações a restrições de hardware e verificar equivalência. O módulo faz parte do projeto acadêmico **GrowUp — Agente RAG para Otimização de Código em Next-Gen Computing**.
 
-O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. A integração com o agente de IA e os demais serviços será feita no projeto principal da equipe.
+O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. O módulo já foi incorporado ao [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne), onde suas funcionalidades são utilizadas por uma API FastAPI e pelo frontend. Este repositório permanece dedicado à implementação, demonstração e validação independente das funções Qiskit.
 
 > **Estado atual:** módulo funcional de prova de conceito, com dez funções principais, uma função auxiliar de validação, uma demonstração executável e 20 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
 
@@ -27,7 +27,7 @@ O arquivo principal, `qiskit_service.py`, disponibiliza estas dez funções de u
 
 A função auxiliar `validar_circuito()` centraliza a verificação de tipos para argumentos que devem ser objetos `QuantumCircuit`.
 
-**Importante:** a função `avaliar_proposta_ia()` **não executa uma IA**. Ela recebe uma proposta de circuito já construída e aplica verificações técnicas. A geração das propostas pelo agente RAG ainda depende da integração com os outros componentes do GrowUp.
+**Importante:** a função `avaliar_proposta_ia()` **não executa uma IA**. Ela recebe uma proposta de circuito já construída e aplica verificações técnicas. No projeto principal, a otimização determinística do circuito é executada pelo Qiskit, enquanto o RAG/Gemini participa das respostas documentais. A integração não significa que esta função gere propostas por conta própria.
 
 ### Como interpretar as análises
 
@@ -66,7 +66,7 @@ print(verificar_equivalencia(circuito, circuito, limite_qubits=2))
 
 Quando os circuitos têm a mesma quantidade de qubits, mas ultrapassam o limite aplicável, a verificação lança `ValueError` **antes** de criar os operadores. Nas funções `comparar_niveis()`, `analisar_adaptacao_hardware()` e `avaliar_proposta_ia()`, esse erro é registrado como `"nao_verificado"`, sem afirmar que os circuitos são diferentes. Se as quantidades de qubits dos dois circuitos forem diferentes, `verificar_equivalencia()` retorna `False` antes de construir as matrizes.
 
-**Escopo do limite:** os 10 qubits restringem somente a verificação por operadores densos (`Operator.from_circuit()`), não as funções de métricas ou transpilação. O módulo ainda precisa de controles adicionais de quantidade de operações, tempo e recursos para ser exposto a uma API.
+**Escopo do limite:** os 10 qubits restringem somente a verificação por operadores densos (`Operator.from_circuit()`), não as funções de métricas ou transpilação. Este módulo isolado não implementa todos os controles de execução exigidos para exposição pública. O projeto principal adiciona validações de entrada, controle de concorrência e execução em processo isolado com timeout.
 
 ## Estrutura do repositório
 
@@ -197,9 +197,9 @@ print(analise)
 
 O mapa linear e a lista de portas são **exemplos didáticos**, não a caracterização completa de um dispositivo quântico real.
 
-## Integração inicial por OpenQASM 2
+## Adaptador OpenQASM 2
 
-O módulo agora dispõe de um adaptador Python: **texto OpenQASM 2 → QuantumCircuit → otimização/análise → texto OpenQASM 2**. Ele não publica endpoints HTTP. A função de entrada principal para esse fluxo é **processar_circuito_qasm()**.
+Este módulo disponibiliza um adaptador Python: **texto OpenQASM 2 → QuantumCircuit → otimização/análise → texto OpenQASM 2**. A função de entrada principal para esse fluxo é **processar_circuito_qasm()**. Este repositório individual não publica endpoints HTTP; a API está implementada no projeto principal.
 
 ### Exemplo em Python
 
@@ -224,18 +224,21 @@ print(json.dumps(resultado, ensure_ascii=False, indent=2))
 
 O retorno é um dicionário com **original**, **proposta** (métricas), **equivalente**, **status_verificacao**, **motivo**, **diferenca_operacoes**, **diferenca_profundidade**, **reduziu_operacoes**, **reduziu_profundidade** e **circuito_otimizado_qasm**. O exemplo demonstra a serialização JSON. O teste integrado `test_processar_circuito_qasm()` também executa `json.dumps(resultado, ensure_ascii=False)` para verificar a serialização.
 
-### Formato JSON proposto para alinhamento com Vlad
+### Contrato HTTP utilizado no projeto principal
 
-Este é um **exemplo de contrato sugerido**, não um endpoint existente ou um formato definitivamente acordado:
+No [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne), o endpoint FastAPI **`POST /qiskit/optimize`** recebe código OpenQASM 2 ou um subconjunto restrito de Python/Qiskit. Exemplo de corpo JSON aceito para OpenQASM 2:
 
 ~~~json
 {
-  "circuito_qasm": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];",
-  "nivel_otimizacao": 3
+  "code": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];",
+  "format": "qasm",
+  "optimization_level": 3
 }
 ~~~
 
-No projeto principal, o serviço FastAPI poderá ler esses campos, chamar a função Python e serializar o dicionário retornado. A rota HTTP, os códigos de resposta, o esquema definitivo e a conexão com o agente RAG ainda precisam ser definidos pela equipe.
+O endpoint também aceita `format: "python"` para o subconjunto de Python/Qiskit suportado. Para consultar limites e validações da versão integrada, existe **`GET /qiskit/limits`**.
+
+A API, o formato de entrada do frontend, o processamento em worker e o tratamento de erros HTTP pertencem ao **repositório principal**, e não ao adaptador isolado documentado aqui. A otimização Qiskit funciona independentemente de uma chamada ao Gemini.
 
 ### Validações e limites implementados
 
@@ -254,7 +257,7 @@ A função `carregar_circuito_qasm()` aplica os seguintes limites iniciais:
 - **Depois da conversão:** o circuito reconstruído é conferido por `num_qubits`, `num_clbits` e `size()`. O limite de **500 operações é conferido somente após o parsing**, não antes.
 - **Exportação:** `qasm2.dumps()` converte circuitos compatíveis; nem todo recurso do Qiskit é representável em OpenQASM 2. O circuito otimizado exportado não recebe nessa função uma nova conferência desses limites de entrada.
 - **Equivalência:** a análise por operadores unitários permanece limitada a 10 qubits. Circuitos com mais qubits podem ser otimizados, mas sua equivalência pode ser classificada como `"nao_verificado"`.
-- **Erros:** tipo inadequado gera `TypeError`; textos vazios, inválidos ou que excedem os limites geram `ValueError`. A interpretação dos erros como respostas HTTP será responsabilidade do serviço de integração.
+- **Erros:** tipo inadequado gera `TypeError`; textos vazios, inválidos ou que excedem os limites geram `ValueError`. O projeto principal possui a camada FastAPI responsável por traduzir falhas em respostas HTTP.
 
 **Limitação de segurança:** a pré-verificação com expressões regulares não substitui um parser seguro ou um isolamento de execução. Um texto malicioso ou uma definição de operações complexas ainda pode consumir recursos durante o parsing ou a transpilação. Não há limites de tempo, memória ou isolamento de processo. Não exponha esse adaptador diretamente a entradas públicas não confiáveis sem essas proteções.
 
@@ -300,13 +303,27 @@ A suíte possui **20 métodos de teste**. Para confirmar o resultado no ambiente
 - **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
 - **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
 - **Métricas:** menor contagem de operações ou profundidade não assegura menor erro ou melhor execução em hardware real.
-- **Propostas externas:** o módulo já importa e exporta OpenQASM 2 por funções Python, com validações iniciais e limites no carregamento. O contrato JSON/HTTP ainda não é definitivo, os limites não cobrem todas as fases do processamento e não há isolamento de recursos. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
+- **Propostas externas:** o módulo isolado importa e exporta OpenQASM 2 por funções Python, com validações iniciais e limites no carregamento; não implementa isolamento de recursos. A versão integrada do QuantumOne adiciona contrato HTTP, controles de processamento e suporte a um subconjunto restrito de Python/Qiskit, sem execução arbitrária de código enviado pelo usuário. Código Python produzido por uma IA não deve ser executado diretamente sem controle.
 
 ## Integração com o projeto principal
 
-No GrowUp completo, o agente RAG poderá consultar sua base de conhecimento e **propor** melhorias em circuitos. O módulo Qiskit será responsável por análises e verificações técnicas dessas propostas, quando aplicáveis.
+O módulo Qiskit deste repositório **já foi integrado ao [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne)**, sistema completo desenvolvido pela equipe.
 
-Este repositório **não inclui** LLM, RAG, ChromaDB, endpoints FastAPI ou frontend. O trabalho aqui é disponibilizar as funções Qiskit e um adaptador Python para OpenQASM 2. O contrato JSON/HTTP definitivo ainda precisa ser alinhado com o responsável pela API. A conexão efetiva com endpoints e com o agente acontece no projeto principal.
+O arquivo `qiskit_service.py` foi incorporado ao projeto principal como `quantum/qiskit_service.py`, preservando sua lógica científica. Os testes originais também foram incorporados com ajuste do caminho de importação. No repositório principal, outros componentes acrescentam a API FastAPI, os controles de execução e a interface de usuário.
+
+Na aplicação integrada, é possível:
+
+- Enviar circuitos em **OpenQASM 2** ou em um **subconjunto restrito de Python/Qiskit**;
+- Otimizar circuitos com o transpilador Qiskit, sem depender da disponibilidade do Gemini;
+- Comparar métricas como quantidade de operações e profundidade, verificando equivalência quando o método for aplicável;
+- Visualizar a proposta de circuito otimizado e **aprová-la para aplicação no editor**;
+- Acessar a otimização pelo endpoint FastAPI `POST /qiskit/optimize` e consultar limites por `GET /qiskit/limits`.
+
+O sistema completo também integra **RAG, Gemini e ChromaDB**, implementados por outros integrantes. Esses componentes oferecem pesquisa documental e respostas em linguagem natural; **`avaliar_proposta_ia()` não gera circuitos com IA**, apenas analisa tecnicamente propostas recebidas. Uma redução de métricas não prova por si só uma melhoria em hardware real.
+
+**Escopo deste repositório:** aqui permanecem as funções Qiskit, os exemplos e os testes independentes. LLM, RAG, ChromaDB, endpoints FastAPI e frontend fazem parte exclusivamente do repositório principal.
+
+Para consultar o sistema integrado, sua arquitetura e instruções de execução, acesse [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne).
 
 ## Referências
 
