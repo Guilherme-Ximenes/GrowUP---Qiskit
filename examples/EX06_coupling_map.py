@@ -122,8 +122,22 @@ def main():
     print("\nCIRCUITO ADAPTADO:")
     print(circuito_adaptado.draw(output="text"))
 
-    print("\nOPERAÇÕES SWAP INSERIDAS:")
-    print(circuito_adaptado.count_ops().get("swap", 0))
+    circuito_diagnostico = otimizar_para_hardware(
+        circuito=circuito_original,
+        conectividade=conectividade,
+        layout_inicial=[0, 1, 2, 3],
+        nivel_otimizacao=0,
+        portas_nativas=portas_nativas + ["swap"]
+    )
+
+    swaps_inseridos = circuito_diagnostico.count_ops().get("swap", 0)
+
+    print("\nANÁLISE DO ROTEAMENTO")
+    print(f"Operações SWAP identificadas: {swaps_inseridos}")
+    print(
+        "Observação: esta contagem é obtida em uma transpilação "
+        "auxiliar que preserva a operação SWAP."
+    )
 
 
 if __name__ == "__main__":
