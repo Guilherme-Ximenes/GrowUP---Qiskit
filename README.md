@@ -6,24 +6,24 @@ Este repositório reúne funções Python com Qiskit para analisar métricas, tr
 
 O objetivo é oferecer funções reutilizáveis para analisar circuitos, realizar transpilação, estudar restrições de hardware e avaliar propostas de otimização. O módulo já foi incorporado ao [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne), onde suas funcionalidades são utilizadas por uma API FastAPI e pelo frontend. Este repositório permanece dedicado à implementação, demonstração e validação independente das funções Qiskit.
 
-> **Estado atual:** módulo funcional de prova de conceito, com dez funções principais, uma função auxiliar de validação, uma demonstração executável e 20 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
+> **Estado atual:** módulo funcional de prova de conceito, com dez funções principais, uma função auxiliar de validação, uma demonstração executável, oito exemplos práticos e 20 testes automatizados. **Este repositório não é o sistema GrowUp completo.**
 
 ## Escopo e funcionalidades
 
 O arquivo principal, `qiskit_service.py`, disponibiliza estas dez funções de uso principal:
 
-| Função | Responsabilidade |
-| --- | --- |
-| `obter_metricas(circuito)` | Retorna número de qubits, total de operações, profundidade e contagem por tipo de operação. |
-| `otimizar_circuito(circuito, nivel_otimizacao=3)` | Utiliza o transpilador do Qiskit para otimização genérica, sem definir um hardware específico. |
-| `comparar_niveis(circuito)` | Compara métricas e equivalência nos níveis 0, 1, 2 e 3, registrando também o status e o motivo quando a equivalência não puder ser verificada. |
-| `verificar_equivalencia(original, otimizado, limite_qubits=10)` | Compara operadores unitários até fase global, considerando os metadados de layout e respeitando o teto de 10 qubits para essa verificação. |
-| `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas. |
-| `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)` | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado. |
-| `avaliar_proposta_ia(original, proposta)` | Avalia uma proposta de circuito comparando métricas e verificando equivalência. |
-| `carregar_circuito_qasm(texto_qasm)` | Importa texto OpenQASM 2 para `QuantumCircuit`, verificando tipo, tamanho do texto, registradores e quantidade de operações. |
-| `exportar_circuito_qasm(circuito)` | Converte um circuito compatível para texto OpenQASM 2. |
-| `processar_circuito_qasm(texto_qasm, nivel_otimizacao=3)` | Importa, otimiza, analisa e devolve as métricas, o status de equivalência e o circuito otimizado em OpenQASM 2. |
+| Função                                                                                                          | Responsabilidade                                                                                                                               |
+| --------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `obter_metricas(circuito)`                                                                                      | Retorna número de qubits, total de operações, profundidade e contagem por tipo de operação.                                                    |
+| `otimizar_circuito(circuito, nivel_otimizacao=3)`                                                               | Utiliza o transpilador do Qiskit para otimização genérica, sem definir um hardware específico.                                                 |
+| `comparar_niveis(circuito)`                                                                                     | Compara métricas e equivalência nos níveis 0, 1, 2 e 3, registrando também o status e o motivo quando a equivalência não puder ser verificada. |
+| `verificar_equivalencia(original, otimizado, limite_qubits=10)`                                                 | Compara operadores unitários até fase global, considerando os metadados de layout e respeitando o teto de 10 qubits para essa verificação.     |
+| `otimizar_para_hardware(circuito, conectividade, layout_inicial=None, nivel_otimizacao=0, portas_nativas=None)` | Adapta o circuito a um mapa de conexões e, opcionalmente, a um conjunto de portas nativas.                                                     |
+| `analisar_adaptacao_hardware(original, adaptado, portas_nativas=None)`                                          | Compara métricas, equivalência e nomes das portas utilizadas pelo circuito adaptado.                                                           |
+| `avaliar_proposta_ia(original, proposta)`                                                                       | Avalia uma proposta de circuito comparando métricas e verificando equivalência.                                                                |
+| `carregar_circuito_qasm(texto_qasm)`                                                                            | Importa texto OpenQASM 2 para `QuantumCircuit`, verificando tipo, tamanho do texto, registradores e quantidade de operações.                   |
+| `exportar_circuito_qasm(circuito)`                                                                              | Converte um circuito compatível para texto OpenQASM 2.                                                                                         |
+| `processar_circuito_qasm(texto_qasm, nivel_otimizacao=3)`                                                       | Importa, otimiza, analisa e devolve as métricas, o status de equivalência e o circuito otimizado em OpenQASM 2.                                |
 
 A função auxiliar `validar_circuito()` centraliza a verificação de tipos para argumentos que devem ser objetos `QuantumCircuit`.
 
@@ -75,18 +75,62 @@ GrowUP---Qiskit/
 ├── .gitignore
 ├── README.md
 ├── requirements.txt
-├── qiskit_service.py         # Funções reutilizáveis do módulo
-├── demonstracao_qiskit.py    # Demonstração das funcionalidades
-└── teste_qiskit_service.py   # Testes automatizados com unittest
+├── qiskit_service.py
+├── demonstracao_qiskit.py
+├── teste_qiskit_service.py
+├── docs/
+│   ├── DOC01_fundamentos_circuitos.md
+│   ├── DOC02_metricas_circuitos.md
+│   ├── DOC03_transpilacao_otimizacao.md
+│   ├── DOC04_conectividade_hardware.md
+│   ├── DOC05_simulacao_medicao.md
+│   └── DOC06_equivalencia_validacao.md
+└── examples/
+    ├── EX01_circuito_bell.py
+    ├── EX02_circuito_tres_qubits.py
+    ├── EX03_metricas_circuito.py
+    ├── EX04_portas_redundantes.py
+    ├── EX05_niveis_otimizacao.py
+    ├── EX06_coupling_map.py
+    ├── EX07_statevector_sampler.py
+    └── EX08_equivalencia.py
 ```
 
-O antigo `prototipo_qiskit_growup.py` foi substituído por `demonstracao_qiskit.py`. Seu conteúdo anterior continua disponível no histórico de commits do GitHub.
+### Documentação técnica
+
+A pasta `docs/` reúne seis documentos que organizam os fundamentos e conceitos utilizados pelo módulo:
+
+| Documento                          | Conteúdo                                                                  |
+| ---------------------------------- | ------------------------------------------------------------------------- |
+| `DOC01_fundamentos_circuitos.md`   | Fundamentos de circuitos quânticos, qubits, estados e portas.             |
+| `DOC02_metricas_circuitos.md`      | Métricas de circuitos, operações, profundidade e análise estrutural.      |
+| `DOC03_transpilacao_otimizacao.md` | Transpilação, níveis de otimização e transformações de circuitos.         |
+| `DOC04_conectividade_hardware.md`  | Conectividade física, `CouplingMap`, layout, roteamento e portas nativas. |
+| `DOC05_simulacao_medicao.md`       | Simulação, estados quânticos, medição, amostragem e resultados.           |
+| `DOC06_equivalencia_validacao.md`  | Equivalência de circuitos, operadores unitários e validação de propostas. |
+
+Esses documentos também servem como base de conhecimento técnico para o contexto de recuperação documental do projeto maior.
+
+### Exemplos práticos
+
+A pasta `examples/` contém oito exemplos independentes que demonstram os principais conceitos e funcionalidades do módulo:
+
+| Exemplo                        | Tema                                                           |
+| ------------------------------ | -------------------------------------------------------------- |
+| `EX01_circuito_bell.py`        | Construção e análise de um estado de Bell.                     |
+| `EX02_circuito_tres_qubits.py` | Construção e interpretação de um circuito com três qubits.     |
+| `EX03_metricas_circuito.py`    | Comparação de métricas e profundidade de circuitos.            |
+| `EX04_portas_redundantes.py`   | Identificação de portas redundantes e validação de otimização. |
+| `EX05_niveis_otimizacao.py`    | Comparação dos níveis de otimização do Qiskit.                 |
+| `EX06_coupling_map.py`         | Adaptação de circuitos à conectividade de hardware.            |
+| `EX07_statevector_sampler.py`  | Análise de estado quântico e amostragem de resultados.         |
+| `EX08_equivalencia.py`         | Verificação de equivalência entre circuitos e propostas.       |
 
 ## Requisitos e instalação
 
 - Python em versão compatível com as dependências instaladas.
 - **Qiskit 2.6.0**, fixado em `requirements.txt`.
-- Não é necessário instalar o **Qiskit Aer** para os exemplos atuais, pois eles não fazem simulação por amostragem ou de ruído.
+- Os exemplos utilizam recursos nativos do Qiskit, incluindo `StatevectorSampler`, para simulação ideal e amostragem. **O Qiskit Aer não é necessário** para executá-los. Aer seria necessário caso fossem adicionadas simulações específicas com ruído utilizando `AerSimulator`.
 
 Clone o repositório:
 
@@ -124,10 +168,29 @@ python demonstracao_qiskit.py
 A demonstração tem três partes:
 
 1. **Otimização genérica:** cria um circuito com portas redundantes, aplica `otimizar_circuito()`, apresenta métricas e compara os níveis de otimização 0 a 3.
-2. **Adaptação ao hardware:** usa um `CouplingMap` linear de três qubits e o conjunto hipotético de portas `["rz", "sx", "x", "cx"]` para demonstrar layout, roteamento e tradução para portas permitidas.
+2. **Adaptação ao hardware:** usa um `CouplingMap` linear e um conjunto hipotético de portas `["rz", "sx", "x", "cx"]` para demonstrar layout, roteamento e tradução para portas permitidas.
 3. **Avaliação de propostas:** simula uma proposta equivalente gerada pelo transpilador e uma proposta não equivalente, utilizando `avaliar_proposta_ia()`.
 
 Os resultados são exibidos no terminal, inclusive em formato JSON para facilitar a leitura. **A demonstração não se conecta a uma LLM, API ou processador quântico real.**
+
+## Executar os exemplos
+
+Os exemplos podem ser executados individualmente a partir da raiz do repositório, após a instalação das dependências.
+
+**Windows, Linux e macOS:**
+
+```bash
+python examples/EX01_circuito_bell.py
+python examples/EX02_circuito_tres_qubits.py
+python examples/EX03_metricas_circuito.py
+python examples/EX04_portas_redundantes.py
+python examples/EX05_niveis_otimizacao.py
+python examples/EX06_coupling_map.py
+python examples/EX07_statevector_sampler.py
+python examples/EX08_equivalencia.py
+```
+
+Cada arquivo apresenta uma demonstração independente. Não é necessário executar todos para utilizar o serviço principal.
 
 ## Exemplo de uso do módulo
 
@@ -203,7 +266,7 @@ Este módulo disponibiliza um adaptador Python: **texto OpenQASM 2 → QuantumCi
 
 ### Exemplo em Python
 
-~~~python
+```python
 import json
 from qiskit import QuantumCircuit, qasm2
 from qiskit_service import processar_circuito_qasm
@@ -220,7 +283,7 @@ resultado = processar_circuito_qasm(texto, nivel_otimizacao=3)
 print(resultado["status_verificacao"])
 print(resultado["circuito_otimizado_qasm"])
 print(json.dumps(resultado, ensure_ascii=False, indent=2))
-~~~
+```
 
 O retorno é um dicionário com **original**, **proposta** (métricas), **equivalente**, **status_verificacao**, **motivo**, **diferenca_operacoes**, **diferenca_profundidade**, **reduziu_operacoes**, **reduziu_profundidade** e **circuito_otimizado_qasm**. O exemplo demonstra a serialização JSON. O teste integrado `test_processar_circuito_qasm()` também executa `json.dumps(resultado, ensure_ascii=False)` para verificar a serialização.
 
@@ -228,13 +291,13 @@ O retorno é um dicionário com **original**, **proposta** (métricas), **equiva
 
 No [GrowUp — QuantumOne](https://github.com/vladtairovic/GrowUp-QuantumOne), o endpoint FastAPI **`POST /qiskit/optimize`** recebe código OpenQASM 2 ou um subconjunto restrito de Python/Qiskit. Exemplo de corpo JSON aceito para OpenQASM 2:
 
-~~~json
+```json
 {
   "code": "OPENQASM 2.0;\ninclude \"qelib1.inc\";\nqreg q[2];\nh q[0];\ncx q[0],q[1];",
   "format": "qasm",
   "optimization_level": 3
 }
-~~~
+```
 
 O endpoint também aceita `format: "python"` para o subconjunto de Python/Qiskit suportado. Para consultar limites e validações da versão integrada, existe **`GET /qiskit/limits`**.
 
@@ -244,13 +307,13 @@ A API, o formato de entrada do frontend, o processamento em worker e o tratament
 
 A função `carregar_circuito_qasm()` aplica os seguintes limites iniciais:
 
-| Recurso | Constante no código | Limite |
-| --- | --- | --- |
-| Comprimento do texto OpenQASM 2 | `MAX_CARACTERES_QASM` | 10.000 caracteres |
-| Qubits do circuito importado | `MAX_QUBITS_QASM` | 32 qubits |
-| Bits clássicos do circuito importado | `MAX_BITS_CLASSICOS_QASM` | 32 bits |
-| Operações do circuito importado | `MAX_OPERACOES_QASM` | 500 operações |
-| Verificação de equivalência unitária | `LIM_MAX_EQUIV` | 10 qubits |
+| Recurso                              | Constante no código       | Limite            |
+| ------------------------------------ | ------------------------- | ----------------- |
+| Comprimento do texto OpenQASM 2      | `MAX_CARACTERES_QASM`     | 10.000 caracteres |
+| Qubits do circuito importado         | `MAX_QUBITS_QASM`         | 32 qubits         |
+| Bits clássicos do circuito importado | `MAX_BITS_CLASSICOS_QASM` | 32 bits           |
+| Operações do circuito importado      | `MAX_OPERACOES_QASM`      | 500 operações     |
+| Verificação de equivalência unitária | `LIM_MAX_EQUIV`           | 10 qubits         |
 
 - **Antes da conversão:** a entrada deve ser uma string não vazia dentro do limite de caracteres. Uma pré-verificação com expressões regulares identifica declarações convencionais `qreg` e `creg`, ignorando comentários, para rejeitar registradores que ultrapassem os limites de qubits e bits clássicos.
 - **Durante a conversão:** `qasm2.loads(texto_qasm, include_path=())` interpreta OpenQASM 2 sem buscar arquivos de inclusão em diretórios externos. Erros `QASM2Error` são convertidos em `ValueError`.
@@ -298,7 +361,7 @@ A suíte possui **20 métodos de teste**. Para confirmar o resultado no ambiente
 
 - **Equivalência unitária:** `verificar_equivalencia()` utiliza `Operator.from_circuit()` e `Operator.equiv()`. É adequada aos circuitos unitários pequenos estudados; não é uma verificação geral de circuitos com medições, `reset`, ruído ou fluxo clássico.
 - **Custo computacional:** a construção de operadores completos cresce exponencialmente com o número de qubits. A verificação unitária possui teto de 10 qubits; o carregamento OpenQASM tem limites de 32 qubits, 32 bits clássicos e 500 operações. Entretanto, os limites de operações são conferidos após o parsing, e **não há limitação de tempo/memória nem isolamento de processos**. Isso não equivale à proteção de um serviço público.
-- **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. `avaliar_proposta_ia()`, `analisar_adaptacao_hardware()` e, agora, `comparar_niveis()` registram esse `ValueError` como `"nao_verificado"`, preenchendo `motivo`. Erros de transpilação ou outros tipos de exceção não são cobertos automaticamente por esse tratamento.
+- **Tratamento de verificações não suportadas:** `verificar_equivalencia()` gera `ValueError` quando ocorre um `QiskitError` na construção do operador. `avaliar_proposta_ia()`, `analisar_adaptacao_hardware()` e `comparar_niveis()` registram esse `ValueError` como `"nao_verificado"`, preenchendo `motivo`. Erros de transpilação ou outros tipos de exceção não são cobertos automaticamente por esse tratamento.
 - **Diferença de qubits:** o verificador atual retorna `False` quando os circuitos têm quantidades diferentes de qubits.
 - **Hardware:** `otimizar_para_hardware()` considera conectividade e, opcionalmente, portas permitidas. Ainda não representa integralmente um processador físico com tempos, fidelidades, calibrações e ruído.
 - **Compatibilidade de portas:** `somente_portas_permitidas` confere os **nomes das operações**; não valida sozinha todas as restrições de conectividade, direção, calibração ou execução física.
